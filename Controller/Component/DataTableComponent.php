@@ -56,17 +56,19 @@ class DataTableComponent extends Component {
 /**
  * Settings
  *
- * Available options are:
- * `columns` - defines columns for sorting and searching.
- * 	 - If the key is false, the column will be neither sortable or searchable
- *   - If the key is a string, it will be used to alias the column
- *   	- If an array is used for the value, it takes on the possible options:
- *			`searchable` - enables/disables searching on the column
- *				- If the value is a string, it will be a model callback for extra user-defined processing
- *			`sortable` - enables/disables sorting on the column
- * `trigger` - True will use default check, string will use custom controller callback
- * `triggerAction` - action to check against if default trigger check is used
- * `viewVar` - name of the view var to set the results to
+ * Available options:
+ * - `columns` Defines column aliases and settings for sorting and searching
+ *	 If the key is false, the column will be neither sortable or searchable
+ *   If the key is a string, it will be used to alias the column
+ *   If an array is used for the value, it takes on the possible options:
+ *    - `searchable` Enables/disables searching on the column
+ *      If the value is a string, it will be a model callback for extra user-defined processing
+ *    - `sortable` Enables/disables sorting on the column
+ * - `trigger` True will use default check, string will use custom controller callback. Defaults to true.
+ * - `triggerAction` Action to check against if default trigger check is used.
+ *   Can be wildcard '*', single action, or array of actions. Defaults to index.
+ * - `viewVar` Name of the view var to set the results to. Defaults to dtResults.
+ * - `maxLimit` The maximum limit users can choose to view. Defaults to 100
  *
  * @var array
  */
@@ -75,6 +77,7 @@ class DataTableComponent extends Component {
 		'trigger' => true,
 		'triggerAction' => 'index',
 		'viewVar' => 'dtResults',
+		'maxLimit' => 100,
 	);
 
 /**
@@ -193,15 +196,24 @@ class DataTableComponent extends Component {
 /**
  * Default check to decide whether or not to process
  * This method will check if the configured action and requested action are the same
- * and if the current request is an ajax request. This can be configured via the `autorun`
+ * and if the current request is an ajax request. This can be configured via the `trigger`
  * setting to a string. If the controller has a method with the name of the string, it will
- * call that method to check whether to autorun or not.
+ * call that method to check whether to process or not.
  *
  * @return bool
  */
 	protected function _isDataTableRequest() {
-		// TODO: support array and wildcard *
-		return $this->request->params['action'] == $this->settings['triggerAction'] && $this->request->is('ajax');
+		if ($this->request->is('ajax')) {
+			$triggerAction = $this->settings['triggerAction'];
+			$action = $this->request->params['action'];
+			if ($triggerAction === '*' || $triggerAction == $action) {
+				return true;
+			}
+			if (is_array($triggerAction)) {
+				return in_array($action, $triggerAction);
+			}
+		}
+		return false;
 	}
 
 /**
@@ -210,10 +222,13 @@ class DataTableComponent extends Component {
  * @return void
  */
 	protected function _paginate() {
-		// TODO: hardcode a limit
 		if (isset($this->_params['iDisplayLength']) && isset($this->_params['iDisplayStart'])) {
-			$this->query['limit'] = $this->_params['iDisplayLength'];
-			$this->query['offset'] = $this->_params['iDisplayStart'];
+			$limit = $this->_params['iDisplayLength'];
+			if ($limit > $this->settings['maxLimit']) {
+				$limit = $this->settings['maxLimit'];
+			}
+			$this->query['limit'] = $limit;
+			$this->query['offset'] = $this->_params['iDisplayStart'];;
 		}
 	}
 
@@ -266,8 +281,10 @@ class DataTableComponent extends Component {
 			if (isset($this->_params[$sortColKey])) {
 				$column = $this->_getColumnName($this->_params[$sortColKey]);
 				if ($column !== false && $this->_columns[$column]['sortable']) {
-					$direction = isset($this->_params[$sortDirKey]) ? $this->_params[$sortDirKey] : 'ASC';
-					// todo: verify direction either asc or desc
+					$direction = isset($this->_params[$sortDirKey]) ? $this->_params[$sortDirKey] : 'asc';
+					if (!in_array(strtolower($direction), array('asc', 'desc'))) {
+						$direction = 'asc';
+					}
 					$this->query['order'][] = $column . ' ' . $direction;
 				}
 			}
