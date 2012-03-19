@@ -1,4 +1,6 @@
 <?php
+App::uses('Component', 'Controller');
+
 /**
  * DataTable Component
  *
@@ -6,7 +8,6 @@
  * @subpackage Plugin.DataTable.Controller.Component
  * @author Tigran Gabrielyan
  */
-App::uses('Component', 'Controller/Component');
 class DataTableComponent extends Component {
 
 /**
@@ -148,7 +149,7 @@ class DataTableComponent extends Component {
 		$dataTableData = array(
 			'iTotalRecords' => $total,
 			'iTotalDisplayRecords' => $totalDisplayed,
-			'sEcho' => intval($this->_params['sEcho']),
+			'sEcho' => isset($this->_params['sEcho']) ? intval($this->_params['sEcho']) : 0,
 			'aaData' => array(),
 		);
 
@@ -203,6 +204,11 @@ class DataTableComponent extends Component {
 				'bSortable' => $enabled,
 				'bSearchable' => $enabled,
 			);
+			if (!is_array($options)) {
+				$options = array_merge($defaults, array(
+					'label' => $options,
+				));
+			}
 			$column = $this->toColumn($field);
 			$this->_columns[$column] = array_merge($defaults, $options);
 			$this->query['fields'][] = $column;
