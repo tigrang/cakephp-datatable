@@ -6,6 +6,7 @@
  * @subpackage Plugin.DataTable.Controller.Component
  * @author Tigran Gabrielyan
  */
+App::uses('Component', 'Controller/Component');
 class DataTableComponent extends Component {
 
 /**
@@ -136,12 +137,13 @@ class DataTableComponent extends Component {
 		$this->_sort();
 		$total = $this->_Model->find('count', $this->query);
 		$this->_search();
+		$totalDisplayed = $this->_Model->find('count', $this->query);
 		$this->_paginate();
 		$results = $this->_Model->find('all', $this->query);
 
 		$dataTableData = array(
 			'iTotalRecords' => $total,
-			'iTotalDisplayRecords' => count($results),
+			'iTotalDisplayRecords' => $totalDisplayed,
 			'sEcho' => intval($this->_params['sEcho']),
 			'aaData' => array(),
 		);
