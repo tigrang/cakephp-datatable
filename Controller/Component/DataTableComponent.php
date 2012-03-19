@@ -148,7 +148,7 @@ class DataTableComponent extends Component {
 			'aaData' => array(),
 		);
 
-		$this->Controller->viewClass = 'Json';
+		$this->Controller->viewClass = 'DataTable.DataTableResponse';
 		$this->Controller->set($this->settings['viewVar'], $results);
 		$this->Controller->set(compact('dataTableData'));
 	}
