@@ -17,7 +17,7 @@ _[GIT Submodule]_
 
 In your app directory run:
 
-	git submodule add https://tigrang@github.com/tigrang/cakephp-datatable.git Plugin/DataTable
+	git submodule add https://github.com/tigrang/cakephp-datatable.git Plugin/DataTable
 	git submodule init
 	git submodule update
 
@@ -25,7 +25,7 @@ _[GIT Clone]_
 
 In your plugin directory run:
 
-	git clone https://tigrang@github.com/tigrang/cakephp-datatable.git DataTable
+	git clone https://github.com/tigrang/cakephp-datatable.git DataTable
 
 ## Enable Plugin
 
