@@ -58,13 +58,16 @@ class DataTableComponent extends Component {
  * Settings
  *
  * Available options:
- * - `columns` Defines column aliases and settings for sorting and searching
- *	 If the key is false, the column will be neither sortable or searchable
- *   If the key is a string, it will be used to alias the column
- *   If an array is used for the value, it takes on the possible options:
- *    - `searchable` Enables/disables searching on the column
- *      If the value is a string, it will be a model callback for extra user-defined processing
- *    - `sortable` Enables/disables sorting on the column
+ * - `columns` Defines column aliases and settings for sorting and searching.
+ *   The keys will be fields to use and by default the label via Inflector::humanize()
+ *   If the value is a string, it will be used as the label.
+ *   If the value is false, bSortable and bSearchable will be set to false.
+ *   If the value is null, the column will not be tied to a field and the key will be used for the label
+ *   If the value is an array, it takes on the possible options:
+ *    - `label` Label for the column
+ *    - `bSearchable` A string may be passed instead which will be used as a model callback for extra user-defined
+ *       processing
+ *    - All of the DataTable column options, see @link http://datatables.net/usage/columns
  * - `trigger` True will use default check, string will use custom controller callback. Defaults to true.
  * - `triggerAction` Action to check against if default trigger check is used.
  *   Can be wildcard '*', single action, or array of actions. Defaults to index.
@@ -123,6 +126,7 @@ class DataTableComponent extends Component {
  * @return void
  */
 	public function beforeRender(Controller $controller) {
+		$this->Controller->set('dtColumns', $this->_columns);
 		if ($this->isDataTableRequest()) {
 			$this->process();
 		}
@@ -176,6 +180,10 @@ class DataTableComponent extends Component {
  */
 	protected function _parseSettings() {
 		foreach($this->settings['columns'] as $field => $options) {
+			if (is_null($options)) {
+				$this->_columns[$field] = null;
+				continue;
+			}
 			if (is_numeric($field)) {
 				$field = $options;
 				$options = array();
@@ -185,9 +193,15 @@ class DataTableComponent extends Component {
 				$enabled = $options;
 				$options = array();
 			}
+			$label = Inflector::humanize($field);
+			if (is_string($options)) {
+				$label = $options;
+				$options = array();
+			}
 			$defaults = array(
-				'sortable' => $enabled,
-				'searchable' => $enabled,
+				'label' => $label,
+				'bSortable' => $enabled,
+				'bSearchable' => $enabled,
 			);
 			$column = $this->toColumn($field);
 			$this->_columns[$column] = array_merge($defaults, $options);
@@ -243,24 +257,26 @@ class DataTableComponent extends Component {
 		$i = 0;
 		$conditions = array();
 		foreach($this->_columns as $column => $options) {
-			$searchable = $options['searchable'];
-			if ($searchable !== false) {
-				$searchKey = "sSearch_$i";
-				$searchTerm = $columnSearchTerm = null;
-				if (!empty($this->_params['sSearch'])) {
-					$searchTerm = $this->_params['sSearch'];
-				}
-				if (!empty($this->_params[$searchKey])) {
-					$columnSearchTerm = $this->_params[$searchKey];
-				}
-				if (is_string($searchable) && is_callable(array($this->_Model, $searchable))) {
-					$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
-				} else {
-					if ($searchTerm) {
-						$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
+			if ($options !== null) {
+				$searchable = $options['bSearchable'];
+				if ($searchable !== false) {
+					$searchKey = "sSearch_$i";
+					$searchTerm = $columnSearchTerm = null;
+					if (!empty($this->_params['sSearch'])) {
+						$searchTerm = $this->_params['sSearch'];
 					}
-					if ($columnSearchTerm) {
-						$conditions[] = array("$column LIKE" => '%' . $this->_params[$searchKey] . '%');
+					if (!empty($this->_params[$searchKey])) {
+						$columnSearchTerm = $this->_params[$searchKey];
+					}
+					if (is_string($searchable) && is_callable(array($this->_Model, $searchable))) {
+						$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+					} else {
+						if ($searchTerm) {
+							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
+						}
+						if ($columnSearchTerm) {
+							$conditions[] = array("$column LIKE" => '%' . $this->_params[$searchKey] . '%');
+						}
 					}
 				}
 			}
@@ -282,7 +298,7 @@ class DataTableComponent extends Component {
 			$sortDirKey = "sSortDir_$i";
 			if (isset($this->_params[$sortColKey])) {
 				$column = $this->_getColumnName($this->_params[$sortColKey]);
-				if ($column !== false && $this->_columns[$column]['sortable']) {
+				if (!empty($column) && $this->_columns[$column]['bSortable']) {
 					$direction = isset($this->_params[$sortDirKey]) ? $this->_params[$sortDirKey] : 'asc';
 					if (!in_array(strtolower($direction), array('asc', 'desc'))) {
 						$direction = 'asc';
