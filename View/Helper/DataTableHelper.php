@@ -1,5 +1,6 @@
 <?php
-App::uses('AppHelper', 'Helper');
+App::uses('AppHelper', 'View/Helper');
+
 /**
  * DataTable Helper
  *
