@@ -204,11 +204,6 @@ class DataTableComponent extends Component {
 				'bSortable' => $enabled,
 				'bSearchable' => $enabled,
 			);
-			if (!is_array($options)) {
-				$options = array_merge($defaults, array(
-					'label' => $options,
-				));
-			}
 			$column = $this->toColumn($field);
 			$this->_columns[$column] = array_merge($defaults, $options);
 			$this->query['fields'][] = $column;
