@@ -53,7 +53,7 @@ In your `app/Config/bootstrap.php`:
 					'username' => 'Name',				// bSearchable and bSortable will be true, with a custom label `Name`
 														// by default, the label with be a Inflector::humanize() version of the key
 					'email' => array(
-						'bSearchable' => 'customSearch',// will user model callback to add search conditions
+						'bSearchable' => 'customSearch',// will use model callback to add search conditions
 					),
 					'Actions' => null,					// tells DataTable that this column is not tied to a field
 				),
@@ -80,6 +80,9 @@ Once you have your component setup, you will need to add your view.
 The DataTableResponseView (automatically set by the component) class has a member called `dtResponse` which holds 
 the return data for jquery datatables, including `aaData`.
 
+By default, the view var `$dtResults` will hold resultant model data after searching and paginating. It can be 
+customized with the `viewVar` setting.
+
 #### Example view file:
 
 	<?php
@@ -87,6 +90,7 @@ the return data for jquery datatables, including `aaData`.
 		$this->dtResponse['aaData'][] = array(
 			$result['User']['id'],
 			$result['User']['username'],
+			$result['User']['email'],
 			'actions',
 		);
 	}

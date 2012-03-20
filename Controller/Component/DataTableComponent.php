@@ -204,7 +204,7 @@ class DataTableComponent extends Component {
 				'bSortable' => $enabled,
 				'bSearchable' => $enabled,
 			);
-			$column = $this->toColumn($field);
+			$column = $this->_toColumn($field);
 			$this->_columns[$column] = array_merge($defaults, $options);
 			$this->query['fields'][] = $column;
 		}
@@ -339,7 +339,7 @@ class DataTableComponent extends Component {
  * @param $field
  * @return string
  */
-	protected function toColumn($field) {
+	protected function _toColumn($field) {
 		if (strpos($field, '.') !== false) {
 			return $field;
 		}
