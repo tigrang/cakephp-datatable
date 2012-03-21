@@ -139,8 +139,8 @@ class DataTableComponent extends Component {
  * @return void
  */
 	public function process() {
-		$this->_sort();
 		$total = $this->_Model->find('count', $this->query);
+		$this->_sort();
 		$this->_search();
 		$totalDisplayed = $this->_Model->find('count', $this->query);
 		$this->_paginate();

@@ -2,7 +2,7 @@
 DataTable is a cakephp plugin for [JQuery DataTables](http://datatables.net/).
 
 # Requirements
-* CakePHP 2.0 or higher
+* CakePHP 2.2 or higher
 
 # Installation
 
