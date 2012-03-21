@@ -38,6 +38,10 @@ class DataTableHelper extends AppHelper {
 /**
  * Settings
  *
+ * - `table` See `render()` method for setting info
+ * - `script` See `script()` method for setting info
+ * - `js` See `script()` method for setting info
+ *
  * @var array
  */
 	public $settings = array(
@@ -50,11 +54,12 @@ class DataTableHelper extends AppHelper {
 			'tbodyOptions' => array(),
 		),
 		'script' => array(
+			'dtInitElement' => 'DataTable.jquery_datatable',
 			'inline' => false,
 			'block' => 'script',
 		),
 		'js' => array(
-		)
+		),
 	);
 
 /**
@@ -100,6 +105,7 @@ class DataTableHelper extends AppHelper {
  *
  * @param array $options
  * @param mixed $script Array of settings for script block
+ *                      If true or empty array, defaults will be used
  *                      If false, automatic adding of script block will be disabled
  *                      If string, block name will be set
  * @param array $js
@@ -140,9 +146,16 @@ class DataTableHelper extends AppHelper {
 /**
  * Generates javascript block for DataTable
  *
- * jsOptions takes on the following options:
+ * script options take on the followng settings:
+ * - `dtInitElement` Element to use for jquery initialization.
+ *   A json-encoded variable `js` will be passed for datatable settings.
+ *   See `app/Plugin/DataTable/View/Element/jquery_datatable.ctp` for example usage.
+ *
+ * js options take on the following settings:
  * - `aoColumns` If true, will use columns defined by component
- * - `sAjaxSource` If not a string, will use Router::url to build the url
+ * - `sAjaxSource` If not set while `bServerSide` is true, will be added and set to current url.
+ *   If true, will be set to current url
+ *   If not a string, will use Router::url to build the url
  * - Any other options needed to be passed to jquery config
  *
  * @param array $options
@@ -151,15 +164,37 @@ class DataTableHelper extends AppHelper {
  */
 	public function script($options = array(), $js = array()) {
 		$options = array_merge($this->settings['script'], $options);
+		$dtInitElement = $options['dtInitElement'];
+		unset($options['dtInitElement']);
+
+		$js = $this->jsSettings($js, true);
+		$dtInitScript = $this->_View->element($dtInitElement, compact('js'));
+
+		return $this->Html->scriptBlock($dtInitScript, $options);
+	}
+
+/**
+ * Returns js settings either as an array or json-encoded string
+ *
+ * @param array $js
+ * @param bool $encode
+ * @return array|string
+ */
+	public function jsSettings($js = array(), $encode = false) {
 		$js = array_merge($this->settings['js'], $js);
-		if (isset($js['sAjaxSource']) && !is_string($js['sAjaxSource'])) {
-			$js['sAjaxSource'] = Router::url($js['sAjaxSource']);
+		if (!empty($js['bServerSide'])) {
+			if (!isset($js['sAjaxSource']) || $js['sAjaxSource'] === true) {
+				$js['sAjaxSource'] = $this->request->here();
+			}
+			if (!is_string($js['sAjaxSource'])) {
+				$js['sAjaxSource'] = Router::url($js['sAjaxSource']);
+			}
 		}
 		if (isset($js['aoColumns']) && $js['aoColumns'] === true) {
 			$js['aoColumns'] = $this->columns;
 		}
-		$dtInitScript = $this->_View->element('DataTable.jquery_datatable', compact('js'));
-		return $this->Html->scriptBlock($dtInitScript, $options);
+
+		return ($encode) ? json_encode($js) : $js;
 	}
 
 /**

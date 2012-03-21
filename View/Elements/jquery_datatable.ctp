@@ -1,3 +1,3 @@
 $(document).ready(function() {
-	$('.datatable').dataTable(<?php echo json_encode($js); ?>);
+	$('.datatable').dataTable(<?php echo $js; ?>);
 });
