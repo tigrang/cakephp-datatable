@@ -139,6 +139,10 @@ class DataTableComponent extends Component {
  * @return void
  */
 	public function process() {
+		$sEcho = isset($this->_params['sEcho']) ? intval($this->_params['sEcho']) : 0;
+		if (!$sEcho) {
+			return;
+		}
 		$total = $this->_Model->find('count', $this->query);
 		$this->_sort();
 		$this->_search();
@@ -149,7 +153,7 @@ class DataTableComponent extends Component {
 		$dataTableData = array(
 			'iTotalRecords' => $total,
 			'iTotalDisplayRecords' => $totalDisplayed,
-			'sEcho' => isset($this->_params['sEcho']) ? intval($this->_params['sEcho']) : 0,
+			'sEcho' => $sEcho,
 			'aaData' => array(),
 		);
 
