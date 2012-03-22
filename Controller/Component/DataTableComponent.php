@@ -142,10 +142,12 @@ class DataTableComponent extends Component {
 			);
 		}
 
-		$total = $this->_Model->find('count', $this->query);
+		$total = $this->_Model->find('count');
 		$this->_sort();
 		$this->_search();
-		$totalDisplayed = $this->_Model->find('count', $this->query);
+		$query = $this->query;
+		unset($query['fields']);
+		$totalDisplayed = $this->_Model->find('count', $query);
 		$this->_paginate();
 		$results = $this->_Model->find('all', $this->query);
 
