@@ -112,10 +112,6 @@ class DataTableComponent extends Component {
 			$this->_params = $this->request->data;
 		}
 
-		if (isset($this->Controller->paginate[$this->_Model->alias])) {
-			$this->query = $this->Controller->paginate[$this->_Model->alias];
-		}
-
 		$this->_parseSettings();
 		$this->_columnKeys = array_keys($this->_columns);
 	}
@@ -139,10 +135,19 @@ class DataTableComponent extends Component {
  * @return void
  */
 	public function process() {
-		$total = $this->_Model->find('count', $this->query);
+		if (isset($this->Controller->paginate[$this->_Model->alias])) {
+			$this->query = Set::merge(
+				$this->Controller->paginate[$this->_Model->alias],
+				$this->query
+			);
+		}
+
+		$total = $this->_Model->find('count');
 		$this->_sort();
 		$this->_search();
-		$totalDisplayed = $this->_Model->find('count', $this->query);
+		$query = $this->query;
+		unset($query['fields']);
+		$totalDisplayed = $this->_Model->find('count', $query);
 		$this->_paginate();
 		$results = $this->_Model->find('all', $this->query);
 
