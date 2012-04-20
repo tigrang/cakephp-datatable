@@ -109,12 +109,12 @@ jQuery(document).ready(function() {
 });
 </script>
 
-<table id="example"><thead>put your headers here</thead><tbody></tbody></table>```
-
+<table id="example"><thead>put your headers here</thead><tbody></tbody></table>
+```
 
 
 #### Example `bSearchable` callback:
-
+```
 	<?php
 	class Users extends AppModel {
 		public function customSearch($field, $searchTerm, $columnSearchTerm, $conditions) {
@@ -126,3 +126,4 @@ jQuery(document).ready(function() {
 			}
 		}
 	}
+```
