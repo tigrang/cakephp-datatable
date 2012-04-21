@@ -9,9 +9,22 @@ App::uses('DataTableComponent', 'DataTable.Controller/Component');
 require_once CAKE . 'Test' . DS . 'Case' . DS . 'Model' . DS . 'models.php';
 
 /**
+ * TestDataTableController
+ */
+class TestDataTableController extends Controller {
+	public $uses = array('Article');
+	public $components = array(
+		'Paginator' => array(
+			'className' => 'DataTable.DataTable',
+		),
+	);
+}
+
+/**
  * DataTable Component Test
  */
 class DataTableComponentTest extends CakeTestCase {
+
 /**
  * fixtures
  *
@@ -38,17 +51,13 @@ class DataTableComponentTest extends CakeTestCase {
 				'user_id' => 'User',
 			),
 		);
-		$Collection = new ComponentCollection();
-		$this->DataTable = new DataTableComponent($Collection, $settings);
 		$CakeRequest = new CakeRequest();
 		$CakeResponse = new CakeResponse();
-		$CakeRequest->query = array(
-			'sEcho' => 1,
-		);
-		$this->Controller = new Controller($CakeRequest, $CakeResponse);
+		$CakeRequest->query = array('sEcho' => 1);
+		$this->Controller = new TestDataTableController($CakeRequest, $CakeResponse);
 		$this->Controller->modelClass = 'Article';
-		$this->Controller->loadModel('Article');
-		$this->DataTable->initialize($this->Controller);
+		$this->Controller->Components->init($this->Controller);
+		$this->Controller->Paginator->initialize($this->Controller);
     }
 
 /**
@@ -58,16 +67,19 @@ class DataTableComponentTest extends CakeTestCase {
  */
 	public function tearDown() {
 		parent::tearDown();
-		unset($this->DataTable);
 		unset($this->Controller);
 	}
 
 /**
- * testProcess
+ * testPaginate
  */
-	public function testProcess() {
-		$this->DataTable->process();
+	public function testPaginate() {
+		$this->Controller->paginate();
+		$result = $this->Controller->viewVars;
+		$this->assertEquals(3, $result['dataTableData']['iTotalRecords']);
+		$this->assertEquals(3, $result['dataTableData']['iTotalDisplayRecords']);
+		$this->assertTrue(!empty($result['dtResults']));
 		$this->assertEquals('DataTable.DataTableResponse', $this->Controller->viewClass);
-		$this->assertEquals(1, $this->Controller->viewVars['dataTableData']['sEcho']);
 	}
+
 }

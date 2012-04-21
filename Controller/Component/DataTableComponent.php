@@ -1,6 +1,6 @@
 <?php
 App::uses('Component', 'Controller');
-App::uses('PaginatorComponent', 'Component');
+App::uses('PaginatorComponent', 'Controller/Component');
 
 /**
  * DataTable Component
@@ -73,16 +73,6 @@ class DataTableComponent extends PaginatorComponent {
 		'scope' => array(),
 		'maxLimit' => 100,
 	);
-
-/**
- * Constructor
- *
- * @param ComponentCollection $collection
- * @param array $settings
- */
-	public function __construct(ComponentCollection $collection, $settings = array()) {
-		parent::__construct($collection, array_merge($this->settings, $settings));
-	}
 
 /**
  * Initialize this component
