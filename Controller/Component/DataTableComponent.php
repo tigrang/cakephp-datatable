@@ -272,8 +272,8 @@ class DataTableComponent extends PaginatorComponent {
 					if (!empty($this->_params[$searchKey])) {
 						$columnSearchTerm = $this->_params[$searchKey];
 					}
-					if (is_string($searchable) && is_callable(array($this->_Model, $searchable))) {
-						$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+					if (is_string($searchable) && is_callable(array($object, $searchable))) {
+						$object->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
 					} else {
 						if ($searchTerm) {
 							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
