@@ -1,5 +1,6 @@
 <?php
 App::uses('Component', 'Controller');
+App::uses('PaginatorComponent', 'Component');
 
 /**
  * DataTable Component
@@ -8,7 +9,7 @@ App::uses('Component', 'Controller');
  * @subpackage Plugin.DataTable.Controller.Component
  * @author Tigran Gabrielyan
  */
-class DataTableComponent extends Component {
+class DataTableComponent extends PaginatorComponent {
 
 /**
  * @var Controller
@@ -19,13 +20,6 @@ class DataTableComponent extends Component {
  * @var CakeRequest
  */
 	public $request;
-
-/**
- * Model query to be built
- *
- * @var array
- */
-	public $query = array();
 
 /**
  * Parsed column config
@@ -49,13 +43,6 @@ class DataTableComponent extends Component {
 	protected $_params = array();
 
 /**
- * Model
- *
- * @var Model
- */
-	protected $_Model;
-
-/**
  * Settings
  *
  * Available options:
@@ -72,6 +59,7 @@ class DataTableComponent extends Component {
  * - `trigger` True will use default check, string will use custom controller callback. Defaults to true.
  * - `triggerAction` Action to check against if default trigger check is used.
  *   Can be wildcard '*', single action, or array of actions. Defaults to index.
+ * - `scope` Scope of results to be searched and pagianated upon.
  * - `viewVar` Name of the view var to set the results to. Defaults to dtResults.
  * - `maxLimit` The maximum limit users can choose to view. Defaults to 100
  *
@@ -82,6 +70,7 @@ class DataTableComponent extends Component {
 		'trigger' => true,
 		'triggerAction' => 'index',
 		'viewVar' => 'dtResults',
+		'scope' => array(),
 		'maxLimit' => 100,
 	);
 
@@ -104,7 +93,6 @@ class DataTableComponent extends Component {
 	public function initialize(Controller $controller) {
 		$this->Controller = $controller;
 		$this->request = $controller->request;
-		$this->_Model = $this->_getModel();
 
 		if ($this->request->is('get')) {
 			$this->_params = $this->request->query;
@@ -112,7 +100,6 @@ class DataTableComponent extends Component {
 			$this->_params = $this->request->data;
 		}
 
-		$this->_parseSettings();
 		$this->_columnKeys = array_keys($this->_columns);
 	}
 
@@ -125,29 +112,39 @@ class DataTableComponent extends Component {
 	public function beforeRender(Controller $controller) {
 		$this->Controller->set('dtColumns', $this->_columns);
 		if ($this->isDataTableRequest()) {
-			$this->process();
+			$this->paginate();
 		}
 	}
 
 /**
- * Main processing logic for DataTables
+ * Main processing logic for DataTable
  *
- * @return void
+ * @param mixed $object
+ * @param mixed $scope
+ * @param array $whitelist
  */
-	public function process() {
-		if (isset($this->Controller->paginate[$this->_Model->alias])) {
-			$this->query = Set::merge(
-				$this->Controller->paginate[$this->_Model->alias],
-				$this->query
+	public function paginate($object = null, $scope = array(), $whitelist = array()) {
+		if (is_array($object)) {
+			$whitelist = $scope;
+			$scope = $object;
+			$object = null;
+		}
+		
+		$object = $this->_getObject($object);
+		$this->_parseSettings($object);
+		if (isset($this->Controller->paginate[$object->alias])) {
+			$this->settings = Set::merge(
+				$this->Controller->paginate,
+				$this->settings
 			);
 		}
-
-		$total = $this->_Model->find('count', $this->query);
-		$this->_sort();
-		$this->_search();
-		$totalDisplayed = $this->_Model->find('count', $this->query);
-		$this->_paginate();
-		$results = $this->_Model->find('all', $this->query);
+		$scope = array_merge($this->settings['scope'], $scope);
+		$total = $object->find('count', array('conditions' => $scope));
+		$this->_sort($object);
+		$this->_search($object);
+		$this->_paginate($object);
+		$results = parent::paginate($object, $scope, $whitelist);
+		$totalDisplayed = $this->request->params['paging'][$object->alias]['count'];
 
 		$dataTableData = array(
 			'iTotalRecords' => $total,
@@ -180,9 +177,9 @@ class DataTableComponent extends Component {
 /**
  * Parses settings
  *
- * @return void
+ * @param Model $object
  */
-	protected function _parseSettings() {
+	protected function _parseSettings(Model $object) {
 		foreach($this->settings['columns'] as $field => $options) {
 			if (is_null($options)) {
 				$this->_columns[$field] = null;
@@ -207,9 +204,9 @@ class DataTableComponent extends Component {
 				'bSortable' => $enabled,
 				'bSearchable' => $enabled,
 			);
-			$column = $this->_toColumn($field);
+			$column = $this->_toColumn($object, $field);
 			$this->_columns[$column] = array_merge($defaults, $options);
-			$this->query['fields'][] = $column;
+			$this->settings[$object->alias]['fields'][] = $column;
 		}
 	}
 
@@ -239,25 +236,27 @@ class DataTableComponent extends Component {
 /**
  * Sets pagination limit and page
  *
+ * @param Model $object
  * @return void
  */
-	protected function _paginate() {
+	protected function _paginate(Model $object) {
 		if (isset($this->_params['iDisplayLength']) && isset($this->_params['iDisplayStart'])) {
 			$limit = $this->_params['iDisplayLength'];
 			if ($limit > $this->settings['maxLimit']) {
 				$limit = $this->settings['maxLimit'];
 			}
-			$this->query['limit'] = $limit;
-			$this->query['offset'] = $this->_params['iDisplayStart'];;
+			$this->settings[$object->alias]['limit'] = $limit;
+			$this->settings[$object->alias]['offset'] = $this->_params['iDisplayStart'];;
 		}
 	}
 
 /**
  * Adds conditions to filter results
  *
+ * @param Model $object
  * @return void
  */
-	protected function _search() {
+	protected function _search(Model $object) {
 		$i = 0;
 		$conditions = array();
 		foreach($this->_columns as $column => $options) {
@@ -287,16 +286,16 @@ class DataTableComponent extends Component {
 			$i++;
 		}
 		if (!empty($conditions)) {
-			$this->query['conditions']['OR'] = $conditions;
+			$this->settings[$object->alias]['conditions']['OR'] = $conditions;
 		}
 	}
 
 /**
  * Sets sort field and direction
  *
- * @return void
+ * @param Model $object
  */
-	protected function _sort() {
+	protected function _sort(Model $object) {
 		for ($i = 0; $i < count($this->_columns); $i++) {
 			$sortColKey = "iSortCol_$i";
 			$sortDirKey = "sSortDir_$i";
@@ -307,20 +306,10 @@ class DataTableComponent extends Component {
 					if (!in_array(strtolower($direction), array('asc', 'desc'))) {
 						$direction = 'asc';
 					}
-					$this->query['order'][] = $column . ' ' . $direction;
+					$this->settings[$object->alias]['order'][] = $column . ' ' . $direction;
 				}
 			}
 		}
-	}
-
-/**
- * Gets the model
- *
- * @return Model
- */
-	protected function _getModel() {
-		// TODO: define by setting value, fallback to modelClass
-		return $this->Controller->{$this->Controller->modelClass};
 	}
 
 /**
@@ -339,14 +328,15 @@ class DataTableComponent extends Component {
 /**
  * Converts field to Model.field
  *
- * @param $field
+ * @param Model $object
+ * @param string $field
  * @return string
  */
-	protected function _toColumn($field) {
+	protected function _toColumn(Model $object, $field) {
 		if (strpos($field, '.') !== false) {
 			return $field;
 		}
-		return $this->_Model->alias . '.' . $field;
+		return $object->alias . '.' . $field;
 	}
 
 }
