@@ -119,7 +119,7 @@ class DataTableComponent extends PaginatorComponent {
 			$scope = $object;
 			$object = null;
 		}
-		
+
 		$object = $this->_getObject($object);
 		$this->_parseSettings($object);
 		if (isset($this->Controller->paginate[$object->alias])) {
@@ -198,6 +198,7 @@ class DataTableComponent extends PaginatorComponent {
 			$this->_columns[$column] = array_merge($defaults, $options);
 			$this->settings[$object->alias]['fields'][] = $column;
 		}
+		$this->_columnKeys = array_keys($this->_columns);
 	}
 
 /**
@@ -261,8 +262,8 @@ class DataTableComponent extends PaginatorComponent {
 					if (!empty($this->_params[$searchKey])) {
 						$columnSearchTerm = $this->_params[$searchKey];
 					}
-					if (is_string($searchable) && is_callable(array($this->_Model, $searchable))) {
-						$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+					if (is_string($searchable) && is_callable(array($object, $searchable))) {
+						$object->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
 					} else {
 						if ($searchTerm) {
 							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
@@ -296,7 +297,7 @@ class DataTableComponent extends PaginatorComponent {
 					if (!in_array(strtolower($direction), array('asc', 'desc'))) {
 						$direction = 'asc';
 					}
-					$this->settings[$object->alias]['order'][] = $column . ' ' . $direction;
+					$this->settings[$object->alias]['order'][$column] = $direction;
 				}
 			}
 		}
