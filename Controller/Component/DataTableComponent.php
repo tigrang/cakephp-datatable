@@ -75,6 +75,25 @@ class DataTableComponent extends PaginatorComponent {
 	);
 
 /**
+ * We need _settings in case $this->paginate is set on the Controller
+ * this prevents the Controller from overwriting Component settings
+ *
+ * @var array
+ */
+	protected $_settings = array();
+
+/**
+ * Constructor
+ *
+ * @param ComponentCollection $Collection
+ * @param array $settings
+ */
+	public function __construct(ComponentCollection $Collection, $settings = array()) {
+		parent::__construct($Collection, $settings);
+		$this->_settings = $this->settings;
+	}
+
+/**
  * Initialize this component
  *
  * @param Controller $controller
@@ -114,6 +133,7 @@ class DataTableComponent extends PaginatorComponent {
  * @param array $whitelist
  */
 	public function paginate($object = null, $scope = array(), $whitelist = array()) {
+		$this->settings = array_merge($this->_settings, $this->settings);
 		if (is_array($object)) {
 			$whitelist = $scope;
 			$scope = $object;
@@ -122,17 +142,12 @@ class DataTableComponent extends PaginatorComponent {
 
 		$object = $this->_getObject($object);
 		$this->_parseSettings($object);
-		if (isset($this->Controller->paginate[$object->alias])) {
-			$this->settings = Set::merge(
-				$this->Controller->paginate,
-				$this->settings
-			);
-		}
+
 		$scope = array_merge($this->settings['scope'], $scope);
 		$total = $object->find('count', array('conditions' => $scope));
 		$this->_sort($object);
 		$this->_search($object);
-		$this->_paginate($object);
+		$this->_paginate($object);debug($this->settings);
 		$results = parent::paginate($object, $scope, $whitelist);
 		$totalDisplayed = $this->request->params['paging'][$object->alias]['count'];
 
@@ -154,6 +169,7 @@ class DataTableComponent extends PaginatorComponent {
  * @return bool
  */
 	public function isDataTableRequest() {
+		$this->settings = array_merge($this->_settings, $this->settings);
 		$trigger = $this->settings['trigger'];
 		if ($trigger === true) {
 			return $this->_isDataTableRequest();

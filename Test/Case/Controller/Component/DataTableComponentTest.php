@@ -16,6 +16,10 @@ class TestDataTableController extends Controller {
 	public $components = array(
 		'Paginator' => array(
 			'className' => 'DataTable.DataTable',
+			'columns' => array(
+				'title' => 'Title',
+				'user_id' => 'User',
+			),
 		),
 	);
 }
@@ -45,12 +49,6 @@ class DataTableComponentTest extends CakeTestCase {
 	public function setUp() {
 		parent::setUp();
 		putenv('REQUEST_METHOD=GET');
-		$settings = array(
-			'columns' => array(
-				'title' => 'Title',
-				'user_id' => 'User',
-			),
-		);
 		$CakeRequest = new CakeRequest();
 		$CakeResponse = new CakeResponse();
 		$CakeRequest->query = array('sEcho' => 1);
@@ -58,6 +56,19 @@ class DataTableComponentTest extends CakeTestCase {
 		$this->Controller->modelClass = 'Article';
 		$this->Controller->Components->init($this->Controller);
 		$this->Controller->Paginator->initialize($this->Controller);
+
+		for ($i = 0; $i < 25; $i++) {
+			$this->Controller->Article->create();
+			$this->Controller->Article->save(array(
+				'title' => 'DataTable Plugin Test ' . $i,
+			));
+		}
+		for ($i = 0; $i < 25; $i++) {
+			$this->Controller->Article->create();
+			$this->Controller->Article->save(array(
+				'title' => 'DataTable Plugin Test Sub ' . $i,
+			));
+		}
     }
 
 /**
@@ -74,10 +85,13 @@ class DataTableComponentTest extends CakeTestCase {
  * testPaginate
  */
 	public function testPaginate() {
+		$this->Controller->paginate = array(
+			'conditions' => array('Article.title LIKE' => 'DataTable Plugin Test%'),
+		);
 		$this->Controller->paginate();
 		$result = $this->Controller->viewVars;
-		$this->assertEquals(3, $result['dataTableData']['iTotalRecords']);
-		$this->assertEquals(3, $result['dataTableData']['iTotalDisplayRecords']);
+		$this->assertEquals(28, $result['dataTableData']['iTotalRecords']);
+		$this->assertEquals(28, $result['dataTableData']['iTotalDisplayRecords']);
 		$this->assertTrue(!empty($result['dtResults']));
 		$this->assertEquals('DataTable.DataTableResponse', $this->Controller->viewClass);
 	}
