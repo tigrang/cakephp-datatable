@@ -1,6 +1,6 @@
 <?php
 App::uses('Component', 'Controller');
-App::uses('PaginatorComponent', 'Component');
+App::uses('PaginatorComponent', 'Controller/Component');
 
 /**
  * DataTable Component
@@ -10,16 +10,6 @@ App::uses('PaginatorComponent', 'Component');
  * @author Tigran Gabrielyan
  */
 class DataTableComponent extends PaginatorComponent {
-
-/**
- * @var Controller
- */
-	public $Controller;
-
-/**
- * @var CakeRequest
- */
-	public $request;
 
 /**
  * Parsed column config
@@ -75,32 +65,15 @@ class DataTableComponent extends PaginatorComponent {
 	);
 
 /**
- * Constructor
- *
- * @param ComponentCollection $collection
- * @param array $settings
- */
-	public function __construct(ComponentCollection $collection, $settings = array()) {
-		parent::__construct($collection, array_merge($this->settings, $settings));
-	}
-
-/**
  * Initialize this component
  *
  * @param Controller $controller
  * @return void
  */
 	public function initialize(Controller $controller) {
-		$this->Controller = $controller;
-		$this->request = $controller->request;
-
-		if ($this->request->is('get')) {
-			$this->_params = $this->request->query;
-		} else if ($this->request->is('post')) {
-			$this->_params = $this->request->data;
-		}
-
-		$this->_columnKeys = array_keys($this->_columns);
+		parent::initialize($controller);
+		$property = $controller->request->is('get') ? 'query' : 'data';
+		$this->_params = $controller->request->$property;
 	}
 
 /**
@@ -110,7 +83,7 @@ class DataTableComponent extends PaginatorComponent {
  * @return void
  */
 	public function beforeRender(Controller $controller) {
-		$this->Controller->set('dtColumns', $this->_columns);
+		$controller->set('dtColumns', $this->_columns);
 		if ($this->isDataTableRequest()) {
 			$this->paginate();
 		}
@@ -138,13 +111,15 @@ class DataTableComponent extends PaginatorComponent {
 				$this->settings
 			);
 		}
+
 		$scope = array_merge($this->settings['scope'], $scope);
 		$total = $object->find('count', array('conditions' => $scope));
 		$this->_sort($object);
 		$this->_search($object);
 		$this->_paginate($object);
+
 		$results = parent::paginate($object, $scope, $whitelist);
-		$totalDisplayed = $this->request->params['paging'][$object->alias]['count'];
+		$totalDisplayed = $this->Controller->request->params['paging'][$object->alias]['count'];
 
 		$dataTableData = array(
 			'iTotalRecords' => $total,
@@ -221,9 +196,9 @@ class DataTableComponent extends PaginatorComponent {
  * @return bool
  */
 	protected function _isDataTableRequest() {
-		if ($this->request->is('ajax')) {
+		if ($this->Controller->request->is('ajax')) {
 			$triggerAction = $this->settings['triggerAction'];
-			$action = $this->request->params['action'];
+			$action = $this->Controller->request->params['action'];
 			if ($triggerAction === '*' || $triggerAction == $action) {
 				return true;
 			}
