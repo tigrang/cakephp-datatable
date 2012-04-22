@@ -52,6 +52,8 @@ class DataTableHelper extends AppHelper {
 			'theadOptions' => array(),
 			'tbody' => '',
 			'tbodyOptions' => array(),
+			'tfoot' => '',
+			'tfootOptions' => array(),
 		),
 		'script' => array(
 			'dtInitElement' => 'DataTable.jquery_datatable',
@@ -120,15 +122,18 @@ class DataTableHelper extends AppHelper {
 
 		$theadOptions = $options['theadOptions'];
 		$tbodyOptions = $options['tbodyOptions'];
-		unset($options['theadOptions'], $options['tbodyOptions']);
+		$tfootOptions = $options['tfootOptions'];
+		unset($options['theadOptions'], $options['tbodyOptions'], $options['tfootOptions']);
 
 		$tbody = $options['tbody'];
-		unset($options['thead'], $options['tbody']);
+		$tfoot = $options['tfoot'];
+		unset($options['tbody'], $options['tfoot']);
 
 		$tableHeaders = $this->Html->tableHeaders($this->labels, $trOptions, $thOptions);
 		$tableHead = $this->Html->tag('thead', $tableHeaders, $theadOptions);
 		$tableBody = $this->Html->tag('tbody', $tbody, $tbodyOptions);
-		$table = $this->Html->tag('table', $tableHead . $tableBody, $options);
+		$tableFooter = $this->Html->tag('tfoot', $tfoot, $tfootOptions);
+		$table = $this->Html->tag('table', $tableHead . $tableBody . $tableFooter, $options);
 
 		if ($script !== false) {
 			if ($script === true) {
@@ -159,7 +164,7 @@ class DataTableHelper extends AppHelper {
  * - Any other options needed to be passed to jquery config
  *
  * @param array $options
- * @param array $jsOptions
+ * @param array $js
  * @return mixed string|void String if `inline`, void otherwise
  */
 	public function script($options = array(), $js = array()) {
@@ -204,7 +209,11 @@ class DataTableHelper extends AppHelper {
  */
 	protected function _parseSettings() {
 		foreach($this->_View->viewVars['dtColumns'] as $field => $options) {
-			$this->labels[] = ($options === null) ? $field : $options['label'];
+			$label = ($options === null) ? $field : $options['label'];
+			if ($label == '__CHECKBOX__') {
+				$label = '<input type="checkbox" class="check-all">';
+			}
+			$this->labels[] = $label;
 			unset($options['label']);
 			if (isset($options['bSearchable'])) {
 				$options['bSearchable'] = (boolean)$options['bSearchable'];

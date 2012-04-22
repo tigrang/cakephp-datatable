@@ -1,3 +1,3 @@
 $(document).ready(function() {
-	$('.datatable').dataTable(<?php echo $js; ?>);
+	$('.dataTable').dataTable(<?php echo $js; ?>);
 });
