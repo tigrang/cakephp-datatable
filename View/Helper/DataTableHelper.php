@@ -1,5 +1,5 @@
 <?php
-App::uses('AppHelper', 'View/Helper');
+App::uses('HtmlHelper', 'View/Helper');
 
 /**
  * DataTable Helper
@@ -10,16 +10,7 @@ App::uses('AppHelper', 'View/Helper');
  *
  * @property HtmlHelper $Html
  */
-class DataTableHelper extends AppHelper {
-
-/**
- * Helpers
- *
- * @var array
- */
-	public $helpers = array(
-		'Html'
-	);
+class DataTableHelper extends HtmlHelper {
 
 /**
  * Table header labels
@@ -88,7 +79,15 @@ class DataTableHelper extends AppHelper {
 		if (!isset($this->labels[$index])) {
 			return false;
 		}
-		$this->labels[$index] = str_replace('__LABEL__', $this->labels[$index], $label);
+		$this->labels[$index][0] = str_replace('__LABEL__', $this->labels[$index], $label);
+		return true;
+	}
+
+	public function setLabelOptions($index, $options = array()) {
+		if (!isset($this->labels[$index])) {
+			return false;
+		}
+		$this->labels[$index][1] = $options;
 		return true;
 	}
 
@@ -129,11 +128,11 @@ class DataTableHelper extends AppHelper {
 		$tfoot = $options['tfoot'];
 		unset($options['tbody'], $options['tfoot']);
 
-		$tableHeaders = $this->Html->tableHeaders($this->labels, $trOptions, $thOptions);
-		$tableHead = $this->Html->tag('thead', $tableHeaders, $theadOptions);
-		$tableBody = $this->Html->tag('tbody', $tbody, $tbodyOptions);
-		$tableFooter = $this->Html->tag('tfoot', $tfoot, $tfootOptions);
-		$table = $this->Html->tag('table', $tableHead . $tableBody . $tableFooter, $options);
+		$tableHeaders = $this->tableHeaders($this->labels, $trOptions, $thOptions);
+		$tableHead = $this->tag('thead', $tableHeaders, $theadOptions);
+		$tableBody = $this->tag('tbody', $tbody, $tbodyOptions);
+		$tableFooter = $this->tag('tfoot', $tfoot, $tfootOptions);
+		$table = $this->tag('table', $tableHead . $tableBody . $tableFooter, $options);
 
 		if ($script !== false) {
 			if ($script === true) {
@@ -175,7 +174,7 @@ class DataTableHelper extends AppHelper {
 		$js = $this->jsSettings($js, true);
 		$dtInitScript = $this->_View->element($dtInitElement, compact('js'));
 
-		return $this->Html->scriptBlock($dtInitScript, $options);
+		return $this->scriptBlock($dtInitScript, $options);
 	}
 
 /**
@@ -186,7 +185,7 @@ class DataTableHelper extends AppHelper {
  * @return array|string
  */
 	public function jsSettings($js = array(), $encode = false) {
-		$js = array_merge($this->settings['js'], $js);
+		$js = array_merge($this->settings['js'], (array)$js);
 		if (!empty($js['bServerSide'])) {
 			if (!isset($js['sAjaxSource']) || $js['sAjaxSource'] === true) {
 				$js['sAjaxSource'] = $this->request->here();
@@ -213,13 +212,27 @@ class DataTableHelper extends AppHelper {
 			if ($label == '__CHECKBOX__') {
 				$label = '<input type="checkbox" class="check-all">';
 			}
-			$this->labels[] = $label;
+			$this->labels[] = array($label, array());
 			unset($options['label']);
 			if (isset($options['bSearchable'])) {
 				$options['bSearchable'] = (boolean)$options['bSearchable'];
 			}
 			$this->columns[] = $options;
 		}
+	}
+
+	public function tableHeaders($names, $trOptions = null, $thOptions = null) {
+		$out = array();
+		foreach ($names as $name) {
+			$arg = $name;
+			$options = array();
+			if (is_array($name)) {
+				list($arg, $options) = $name;
+			}
+			$thOptions = array_merge($options, (array)$thOptions);
+			$out[] = sprintf($this->_tags['tableheader'], $this->_parseAttributes($thOptions), $arg);
+		}
+		return sprintf($this->_tags['tablerow'], $this->_parseAttributes($trOptions), join(' ', $out));
 	}
 
 }
