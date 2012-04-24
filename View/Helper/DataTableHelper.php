@@ -27,6 +27,20 @@ class DataTableHelper extends HtmlHelper {
 	public $columns = array();
 
 /**
+ * Column data passed from controller
+ *
+ * @var array
+ */
+	protected $_dtColumns;
+
+/**
+ * Used to numerically find index of column
+ *
+ * @var
+ */
+	protected $_keys;
+
+/**
  * Settings
  *
  * - `table` See `render()` method for setting info
@@ -63,9 +77,9 @@ class DataTableHelper extends HtmlHelper {
  */
 	public function __construct(View $View, $settings = array()) {
 		parent::__construct($View, $settings);
-
-		$this->_parseSettings();
 		$this->settings = array_merge($this->settings, $settings);
+		$this->_dtColumns = $this->_View->viewVars['dtColumns'];
+		$this->_keys = array_keys($this->_dtColumns);
 	}
 
 /**
@@ -76,18 +90,22 @@ class DataTableHelper extends HtmlHelper {
  * @return bool true if set, false otherwise
  */
 	public function setLabel($index, $label) {
-		if (!isset($this->labels[$index])) {
+		if (!isset($this->_keys[$index])) {
 			return false;
 		}
-		$this->labels[$index][0] = str_replace('__LABEL__', $this->labels[$index], $label);
-		return true;
-	}
-
-	public function setLabelOptions($index, $options = array()) {
-		if (!isset($this->labels[$index])) {
-			return false;
+		$key = $this->_keys[$index];
+		$oldLabel = $this->_dtColumns[$key]['label'];
+		$oldOptions = $options = array();
+		if (is_array($oldLabel)) {
+			list($oldLabel, $oldOptions) = $this->_dtColumns[$key]['label'];
 		}
-		$this->labels[$index][1] = $options;
+		if (is_array($label)) {
+			list($label, $options) = $label;
+		}
+		$this->_dtColumns[$key]['label'] = array(
+			str_replace('__LABEL__', $oldLabel, $label),
+			array_merge($oldOptions, $options),
+		);
 		return true;
 	}
 
@@ -113,6 +131,7 @@ class DataTableHelper extends HtmlHelper {
  * @return string
  */
 	public function render($options = array(), $script = array(), $js = array()) {
+		$this->_parseSettings();
 		$options = array_merge($this->settings['table'], $options);
 
 		$trOptions = $options['trOptions'];
@@ -146,6 +165,29 @@ class DataTableHelper extends HtmlHelper {
 
 		return $table;
 	}
+
+/**
+ * Renders table headers with column-specific attribute support
+ *
+ * @param $names
+ * @param null $trOptions
+ * @param null $thOptions
+ * @return string
+ */
+	public function tableHeaders($names, $trOptions = null, $thOptions = null) {
+		$out = array();
+		foreach ($names as $name) {
+			$arg = $name;
+			$options = array();
+			if (is_array($name)) {
+				list($arg, $options) = $name;
+			}
+			$options = array_merge((array)$thOptions, $options);
+			$out[] = sprintf($this->_tags['tableheader'], $this->_parseAttributes($options), $arg);
+		}
+		return sprintf($this->_tags['tablerow'], $this->_parseAttributes($trOptions), join(' ', $out));
+	}
+
 
 /**
  * Generates javascript block for DataTable
@@ -203,36 +245,27 @@ class DataTableHelper extends HtmlHelper {
 
 /**
  * Parse settings
+ * Replaces __CHECKBOX__ label with checkbox
  *
  * @return void
  */
 	protected function _parseSettings() {
-		foreach($this->_View->viewVars['dtColumns'] as $field => $options) {
+		foreach($this->_dtColumns as $field => $options) {
 			$label = ($options === null) ? $field : $options['label'];
+			$labelOptions = array();
+			if (is_array($label)) {
+				list($label, $labelOptions) = $label;
+			}
 			if ($label == '__CHECKBOX__') {
 				$label = '<input type="checkbox" class="check-all">';
 			}
-			$this->labels[] = array($label, array());
+			$this->labels[] = array($label, $labelOptions);
 			unset($options['label']);
 			if (isset($options['bSearchable'])) {
 				$options['bSearchable'] = (boolean)$options['bSearchable'];
 			}
 			$this->columns[] = $options;
 		}
-	}
-
-	public function tableHeaders($names, $trOptions = null, $thOptions = null) {
-		$out = array();
-		foreach ($names as $name) {
-			$arg = $name;
-			$options = array();
-			if (is_array($name)) {
-				list($arg, $options) = $name;
-			}
-			$thOptions = array_merge($options, (array)$thOptions);
-			$out[] = sprintf($this->_tags['tableheader'], $this->_parseAttributes($thOptions), $arg);
-		}
-		return sprintf($this->_tags['tablerow'], $this->_parseAttributes($trOptions), join(' ', $out));
 	}
 
 }
