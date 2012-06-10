@@ -113,7 +113,7 @@ customized with the `viewVar` setting.
     
 	<?php
 	$this->DataTable->render(); // renders default model for this view
-	$this->DataTable->render('AssociatedModel'); // renders 'AssoicatedModel' table
+	$this->DataTable->render('AssociatedModel'); // renders 'AssociatedModel' table
 	
 If you create the `<table>` yourself, be sure to add a `data-model="Model"` attribute to the table tag. The helper is still required to parse the column settings and outputs a global javascript `dataTableSettings` available for you to use.
 The helper by default uses the following init script:
