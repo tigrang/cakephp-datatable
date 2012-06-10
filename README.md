@@ -70,6 +70,16 @@ In your `app/Config/bootstrap.php`:
 	 	);
 	}
 
+You may now paginate more than one model in a view. This becomes useful when displaying two or more hasMany associated models for a `view` page.
+List all models to paginate in `$this->DataTable->paginate` property:
+
+	<?php
+	public function view() {
+		$this->DataTable->paginate = array('User', 'Article');
+	}
+	
+**Note**: These models must be directly related.
+
 See docblock for complete list of component settings.
 
 Once you have your component setup, you will need to add your view.
