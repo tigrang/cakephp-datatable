@@ -1,7 +1,5 @@
 <?php
-App::uses('Component', 'Controller');
 App::uses('PaginatorComponent', 'Controller/Component');
-
 /**
  * DataTable Component
  *
@@ -10,27 +8,6 @@ App::uses('PaginatorComponent', 'Controller/Component');
  * @author Tigran Gabrielyan
  */
 class DataTableComponent extends PaginatorComponent {
-
-/**
- * Parsed column config
- *
- * @var array
- */
-	protected $_columns = array();
-
-/**
- * Column keys to be accessed via index for sorting columns
- *
- * @var array
- */
-	protected $_columnKeys = array();
-
-/**
- * DataTable request params
- *
- * @var array
- */
-	protected $_params = array();
 
 /**
  * Settings
@@ -60,9 +37,68 @@ class DataTableComponent extends PaginatorComponent {
 		'trigger' => true,
 		'triggerAction' => 'index',
 		'viewVar' => 'dtResults',
-		'scope' => array(),
 		'maxLimit' => 100,
 	);
+
+/**
+ * Model(s) to paginate
+ *
+ * @var string
+ */
+	public $paginate = null;
+
+/**
+ * Holds default settings
+ *
+ * @var array
+ */
+	protected $_defaults;
+
+/**
+ * Model instance
+ *
+ * @var Model
+ */
+	protected $_object;
+
+/**
+ * Parsed column config
+ *
+ * @var array
+ */
+	protected $_columns = array();
+
+/**
+ * Column keys to be accessed via index for sorting columns
+ *
+ * @var array
+ */
+	protected $_columnKeys = array();
+
+/**
+ * DataTable request params
+ *
+ * @var array
+ */
+	protected $_params = array();
+
+/**
+ * Parsed settings by alias
+ *
+ * @var array
+ */
+	protected $_parsed = array();
+
+/**
+ * Constructor
+ *
+ * @param ComponentCollection $collection
+ * @param array $settings
+ */
+	public function __construct(ComponentCollection $collection, $settings = array()) {
+		parent::__construct($collection, $settings);
+		$this->_defaults = $this->settings;
+	}
 
 /**
  * Initialize this component
@@ -83,10 +119,18 @@ class DataTableComponent extends PaginatorComponent {
  * @return void
  */
 	public function beforeRender(Controller $controller) {
-		$controller->set('dtColumns', $this->_columns);
-		if ($this->isDataTableRequest()) {
-			$this->paginate();
+		if (count($this->paginate)) {
+			foreach($this->paginate as $model) {
+				$this->_parseSettings($model);
+			}
+		} else {
+			$this->_parseSettings();
 		}
+		$this->Controller->set('dtColumns', $this->_columns);
+		if ($this->isDataTableRequest()) {
+			$this->paginate($this->_params['model']);
+		}
+		$this->Controller->set('dataTabledModels', $this->paginate);
 	}
 
 /**
@@ -94,33 +138,24 @@ class DataTableComponent extends PaginatorComponent {
  *
  * @param mixed $object
  * @param mixed $scope
- * @param array $whitelist
  */
-	public function paginate($object = null, $scope = array(), $whitelist = array()) {
+	public function paginate($object = null, $scope = array()) {
 		if (is_array($object)) {
-			$whitelist = $scope;
 			$scope = $object;
 			$object = null;
 		}
-
-		$object = $this->_getObject($object);
-		$this->_parseSettings($object);
-		if (isset($this->Controller->paginate[$object->alias])) {
-			$this->settings = Set::merge(
-				$this->Controller->paginate,
-				$this->settings
-			);
+		$settings = $this->_parseSettings($object);
+		if (isset($settings['scope'])) {
+			$scope = array_merge($settings['scope'], $scope);
 		}
+		$total = $this->_object->find('count', array('conditions' => $scope));
+		$this->_sort($settings);
+		$this->_search($settings);
+		$this->_paginate($settings);
+		$this->settings[$this->_object->alias] = $settings;
 
-		$scope = array_merge($this->settings['scope'], $scope);
-		$total = $object->find('count', array('conditions' => $scope));
-		$this->_sort($object);
-		$this->_search($object);
-		$this->_paginate($object);
-
-		$results = parent::paginate($object, $scope, $whitelist);
-		$totalDisplayed = $this->Controller->request->params['paging'][$object->alias]['count'];
-
+		$results = parent::paginate($this->_object, $scope);
+		$totalDisplayed = $this->Controller->request->params['paging'][$this->_object->alias]['count'];
 		$dataTableData = array(
 			'iTotalRecords' => $total,
 			'iTotalDisplayRecords' => $totalDisplayed,
@@ -129,8 +164,11 @@ class DataTableComponent extends PaginatorComponent {
 		);
 
 		$this->Controller->viewClass = 'DataTable.DataTableResponse';
-		$this->Controller->set($this->settings['viewVar'], $results);
+		$this->Controller->set($settings['viewVar'], $results);
 		$this->Controller->set(compact('dataTableData'));
+		if (isset($settings['view'])) {
+			$this->Controller->view = $settings['view'];
+		}
 	}
 
 /**
@@ -139,7 +177,7 @@ class DataTableComponent extends PaginatorComponent {
  * @return bool
  */
 	public function isDataTableRequest() {
-		$trigger = $this->settings['trigger'];
+		$trigger = isset($this->settings['trigger']) ? $this->settings['trigger'] : $this->_defaults['trigger'];
 		if ($trigger === true) {
 			return $this->_isDataTableRequest();
 		}
@@ -152,38 +190,50 @@ class DataTableComponent extends PaginatorComponent {
 /**
  * Parses settings
  *
- * @param Model $object
+ * @param string $object
+ * @return array
  */
-	protected function _parseSettings(Model $object) {
-		foreach($this->settings['columns'] as $field => $options) {
-			if (is_null($options)) {
-				$this->_columns[$field] = null;
-				continue;
-			}
-			if (is_numeric($field)) {
-				$field = $options;
-				$options = array();
-			}
-			$enabled = true;
-			if (is_bool($options)) {
-				$enabled = $options;
-				$options = array();
-			}
-			$label = Inflector::humanize($field);
-			if (is_string($options)) {
-				$label = $options;
-				$options = array();
-			}
-			$defaults = array(
-				'label' => $label,
-				'bSortable' => $enabled,
-				'bSearchable' => $enabled,
-			);
-			$column = $this->_toColumn($object, $field);
-			$this->_columns[$column] = array_merge($defaults, $options);
-			$this->settings[$object->alias]['fields'][] = $column;
+	protected function _parseSettings($object = null) {
+		$this->_object = $this->_getObject($object);
+		if (!is_object($this->_object)) {
+			throw new MissingModelException($object);
 		}
-		$this->_columnKeys = array_keys($this->_columns);
+		$alias = $this->_object->alias;
+		if (!isset($this->_parsed[$alias])) {
+			$settings = $this->getDefaults($alias);
+			foreach($settings['columns'] as $field => $options) {
+				if (is_null($options)) {
+					$this->_columns[$alias][$field] = null;
+					continue;
+				}
+				if (is_numeric($field)) {
+					$field = $options;
+					$options = array();
+				}
+				$enabled = true;
+				if (is_bool($options)) {
+					$enabled = $options;
+					$options = array();
+				}
+				$label = Inflector::humanize($field);
+				if (is_string($options)) {
+					$label = $options;
+					$options = array();
+				}
+				$defaults = array(
+					'label' => $label,
+					'bSortable' => $enabled,
+					'bSearchable' => $enabled,
+				);
+				$column = $this->_toColumn($alias, $field);
+				$this->_columns[$alias][$column] = array_merge($defaults, $options);
+				$settings['fields'][] = $column;
+			}
+			$this->_columnKeys[$alias] = array_keys($this->_columns[$alias]);
+			$this->_parsed[$alias] = $settings;
+			return $settings;
+		}
+		return $this->_parsed[$alias];
 	}
 
 /**
@@ -197,7 +247,11 @@ class DataTableComponent extends PaginatorComponent {
  */
 	protected function _isDataTableRequest() {
 		if ($this->Controller->request->is('ajax')) {
-			$triggerAction = $this->settings['triggerAction'];
+			if (isset($this->settings['triggerAction'])) {
+				$triggerAction = $this->settings['triggerAction'];
+			} else {
+				$triggerAction = $this->_defaults['triggerAction'];
+			}
 			$action = $this->Controller->request->params['action'];
 			if ($triggerAction === '*' || $triggerAction == $action) {
 				return true;
@@ -212,30 +266,30 @@ class DataTableComponent extends PaginatorComponent {
 /**
  * Sets pagination limit and page
  *
- * @param Model $object
+ * @param array $settings
  * @return void
  */
-	protected function _paginate(Model $object) {
+	protected function _paginate(&$settings) {
 		if (isset($this->_params['iDisplayLength']) && isset($this->_params['iDisplayStart'])) {
 			$limit = $this->_params['iDisplayLength'];
-			if ($limit > $this->settings['maxLimit']) {
-				$limit = $this->settings['maxLimit'];
+			if ($limit > $settings['maxLimit']) {
+				$limit = $settings['maxLimit'];
 			}
-			$this->settings[$object->alias]['limit'] = $limit;
-			$this->settings[$object->alias]['offset'] = $this->_params['iDisplayStart'];;
+			$settings['limit'] = $limit;
+			$settings['offset'] = $this->_params['iDisplayStart'];;
 		}
 	}
 
 /**
  * Adds conditions to filter results
  *
- * @param Model $object
+ * @param array $settings
  * @return void
  */
-	protected function _search(Model $object) {
+	protected function _search(&$settings) {
 		$i = 0;
 		$conditions = array();
-		foreach($this->_columns as $column => $options) {
+		foreach($this->_columns[$this->_object->alias] as $column => $options) {
 			if ($options !== null) {
 				$searchable = $options['bSearchable'];
 				if ($searchable !== false) {
@@ -247,8 +301,8 @@ class DataTableComponent extends PaginatorComponent {
 					if (!empty($this->_params[$searchKey])) {
 						$columnSearchTerm = $this->_params[$searchKey];
 					}
-					if (is_string($searchable) && is_callable(array($object, $searchable))) {
-						$object->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+					if (is_string($searchable) && is_callable(array($this->_object, $searchable))) {
+						$this->_object->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
 					} else {
 						if ($searchTerm) {
 							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
@@ -262,27 +316,32 @@ class DataTableComponent extends PaginatorComponent {
 			$i++;
 		}
 		if (!empty($conditions)) {
-			$this->settings[$object->alias]['conditions']['OR'] = $conditions;
+			$current = array();
+			if (isset($settings['conditions']['OR'])) {
+				$current = array($settings['conditions']['OR']);
+			}
+			$settings['conditions']['OR'] = array_merge($current, $conditions);
 		}
 	}
 
 /**
  * Sets sort field and direction
  *
- * @param Model $object
+ * @param array $settings
+ * @return void
  */
-	protected function _sort(Model $object) {
-		for ($i = 0; $i < count($this->_columns); $i++) {
+	protected function _sort(&$settings) {
+		for ($i = 0; $i < count($this->_columns[$this->_object->alias]); $i++) {
 			$sortColKey = "iSortCol_$i";
 			$sortDirKey = "sSortDir_$i";
 			if (isset($this->_params[$sortColKey])) {
 				$column = $this->_getColumnName($this->_params[$sortColKey]);
-				if (!empty($column) && $this->_columns[$column]['bSortable']) {
+				if (!empty($column) && $this->_columns[$this->_object->alias][$column]['bSortable']) {
 					$direction = isset($this->_params[$sortDirKey]) ? $this->_params[$sortDirKey] : 'asc';
 					if (!in_array(strtolower($direction), array('asc', 'desc'))) {
 						$direction = 'asc';
 					}
-					$this->settings[$object->alias]['order'][$column] = $direction;
+					$settings['order'][$column] = $direction;
 				}
 			}
 		}
@@ -295,24 +354,35 @@ class DataTableComponent extends PaginatorComponent {
  * @return string
  */
 	protected function _getColumnName($index) {
-		if (!isset($this->_columnKeys[$index])) {
+		$alias = $this->_object->alias;
+		if (!isset($this->_columnKeys[$alias][$index])) {
 			return false;
 		}
-		return $this->_columnKeys[$index];
+		return $this->_columnKeys[$alias][$index];
 	}
 
 /**
  * Converts field to Model.field
  *
- * @param Model $object
+ * @param string $object
  * @param string $field
  * @return string
  */
-	protected function _toColumn(Model $object, $field) {
+	protected function _toColumn($alias, $field) {
 		if (strpos($field, '.') !== false) {
 			return $field;
 		}
-		return $object->alias . '.' . $field;
+		return $alias . '.' . $field;
+	}
+
+/**
+ * Returns settings merged with defaults
+ *
+ * @param string $alias
+ * @return array
+ */
+	public function getDefaults($alias) {
+		return array_merge($this->_defaults, parent::getDefaults($alias));
 	}
 
 }
