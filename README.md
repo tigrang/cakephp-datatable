@@ -108,3 +108,20 @@ customized with the `viewVar` setting.
 			}
 		}
 	}
+	
+# Helper Usage
+    
+	<?php
+	$this->DataTable->render(); // renders default model for this view
+	$this->DataTable->render('AssociatedModel'); // renders 'AssoicatedModel' table
+	
+If you create the `<table>` yourself, be sure to add a `data-model="Model"` attribute to the table tag. The helper is still required to parse the column settings and outputs a global javascript `dataTableSettings` available for you to use.
+The helper by default uses the following init script:
+
+	$('.dataTable').each(function() {
+		var table = $(this);
+		var model = table.attr('data-model');
+		var settings = dataTableSettings[model];
+		table.dataTable(settings);
+	});
+
