@@ -148,7 +148,18 @@ class DataTableComponent extends PaginatorComponent {
 		if (isset($settings['scope'])) {
 			$scope = array_merge($settings['scope'], $scope);
 		}
-		$total = $this->_object->find('count', array('conditions' => $scope));
+		$joins = $contain = array();
+		if (isset($settings['joins'])) {
+			$joins = $settings['joins'];
+		}
+		if (isset($settings['contain'])) {
+			$contain = $settings['contain'];
+		}
+		$total = $this->_object->find('count', array(
+			'conditions' => $scope,
+			'contain' => $contain,
+			'joins' => $joins,
+		));
 		$this->_sort($settings);
 		$this->_search($settings);
 		$this->_paginate($settings);
