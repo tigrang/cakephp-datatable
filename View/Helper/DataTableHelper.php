@@ -245,12 +245,20 @@ INIT_SCRIPT;
  */
 	protected function _parseSettings($model, $columns) {
 		foreach($columns as $field => $options) {
-			$label = ($options === null) ? $field : $options['label'];
-			$this->_labels[$model][] = $this->_parseLabel($label);
-			unset($options['label']);
-			if (isset($options['bSearchable'])) {
-				$options['bSearchable'] = (boolean)$options['bSearchable'];
+			if ($options === null) {
+				$label = $field;
+				$options = array(
+					'bSearchable' => false,
+					'bSortable' => false,
+				);
+			} else {
+				$label = $options['label'];
+				unset($options['label']);
+				if (isset($options['bSearchable'])) {
+					$options['bSearchable'] = (boolean)$options['bSearchable'];
+				}
 			}
+			$this->_labels[$model][] = $this->_parseLabel($label);
 			$this->_dtColumns[$model][] = $options;
 		}
 		return $this->_dtColumns[$model];
