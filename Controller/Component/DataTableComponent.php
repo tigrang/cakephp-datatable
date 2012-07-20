@@ -273,7 +273,7 @@ class DataTableComponent extends Component {
 						$columnSearchTerm = $this->_params[$searchKey];
 					}
 					if (is_string($searchable) && is_callable(array($this->_Model, $searchable))) {
-						$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+						$this->_Model->$searchable($column, $searchTerm, $columnSearchTerm, $conditions);
 					} else {
 						if ($searchTerm) {
 							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
