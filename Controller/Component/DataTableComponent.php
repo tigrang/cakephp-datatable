@@ -120,7 +120,7 @@ class DataTableComponent extends PaginatorComponent {
  */
 	public function beforeRender(Controller $controller) {
 		if (count($this->paginate)) {
-			foreach($this->paginate as $model) {
+			foreach((array)$this->paginate as $model) {
 				$this->_parseSettings($model);
 			}
 		} else {
@@ -128,7 +128,10 @@ class DataTableComponent extends PaginatorComponent {
 		}
 		$this->Controller->set('dtColumns', $this->_columns);
 		if ($this->isDataTableRequest()) {
-			$this->paginate($this->_params['model']);
+			if (!isset($this->_params['model'])) {
+				throw new Exception('DateTableComponent: Model not specified for request.');
+			}
+			$this->process($this->_params['model']);
 		}
 		$this->Controller->set('dataTabledModels', $this->paginate);
 	}
@@ -139,7 +142,7 @@ class DataTableComponent extends PaginatorComponent {
  * @param mixed $object
  * @param mixed $scope
  */
-	public function paginate($object = null, $scope = array()) {
+	public function process($object = null, $scope = array()) {
 		if (is_array($object)) {
 			$scope = $object;
 			$object = null;
@@ -212,6 +215,7 @@ class DataTableComponent extends PaginatorComponent {
 		$alias = $this->_object->alias;
 		if (!isset($this->_parsed[$alias])) {
 			$settings = $this->getDefaults($alias);
+			$this->_columns[$alias] = array();
 			foreach($settings['columns'] as $field => $options) {
 				if (is_null($options)) {
 					$this->_columns[$alias][$field] = null;
@@ -313,7 +317,10 @@ class DataTableComponent extends PaginatorComponent {
 						$columnSearchTerm = $this->_params[$searchKey];
 					}
 					if (is_string($searchable) && is_callable(array($this->_object, $searchable))) {
-						$this->_object->$searchable($column, $searchTerm, $columnSearchTerm, &$conditions);
+						$result = $this->_object->$searchable($column, $searchTerm, $columnSearchTerm, $conditions);
+						if (is_array($result)) {
+							$conditions = $result;
+						}
 					} else {
 						if ($searchTerm) {
 							$conditions[] = array("$column LIKE" => '%' . $this->_params['sSearch'] . '%');
