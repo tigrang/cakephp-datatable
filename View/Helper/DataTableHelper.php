@@ -33,7 +33,9 @@ class DataTableHelper extends HtmlHelper {
 			'tfootOptions' => array(),
 		),
 		'scriptBlock' => 'script',
-		'js' => array(),
+		'js' => array(
+			'bServerSide' => true,
+		),
 	);
 
 /**
@@ -72,7 +74,7 @@ class DataTableHelper extends HtmlHelper {
  */
 	public function __construct(View $View, $settings = array()) {
 		parent::__construct($View, $settings);
-		$this->settings = array_merge($this->settings, $settings);
+		$this->settings = Hash::merge($this->settings, $settings);
 		if (isset($this->_View->viewVars['dtColumns'])) {
 			$dtColumns = $this->_View->viewVars['dtColumns'];
 			foreach($dtColumns as $model => $columns) {
