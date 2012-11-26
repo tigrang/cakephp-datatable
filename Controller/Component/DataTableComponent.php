@@ -215,15 +215,14 @@ class DataTableComponent extends PaginatorComponent {
 			$settings = $this->getDefaults($alias);
 			$this->_columns[$alias] = array();
 			foreach($settings['columns'] as $field => $options) {
+				$useField = $enabled = true;
 				if (is_null($options)) {
-					$this->_columns[$alias][$field] = null;
-					continue;
+					$enabled = $useField = false;
 				}
 				if (is_numeric($field)) {
 					$field = $options;
 					$options = array();
 				}
-				$enabled = true;
 				if (is_bool($options)) {
 					$enabled = $options;
 					$options = array();
@@ -234,13 +233,17 @@ class DataTableComponent extends PaginatorComponent {
 					$options = array();
 				}
 				$defaults = array(
+					'useField' => $useField,
 					'label' => $label,
 					'bSortable' => $enabled,
 					'bSearchable' => $enabled,
 				);
-				$column = $this->_toColumn($alias, $field);
-				$this->_columns[$alias][$column] = array_merge($defaults, $options);
-				$settings['fields'][] = $column;
+				$options = array_merge($defaults, (array)$options);
+				$column = ($options['useField']) ? $this->_toColumn($alias, $field) : $field;
+				$this->_columns[$alias][$column] = $options;
+				if ($options['useField']) {
+					$settings['fields'][] = $column;
+				}
 			}
 			$this->_columnKeys[$alias] = array_keys($this->_columns[$alias]);
 			$this->_parsed[$alias] = $settings;
@@ -303,7 +306,7 @@ class DataTableComponent extends PaginatorComponent {
 		$i = 0;
 		$conditions = array();
 		foreach($this->_columns[$this->_object->alias] as $column => $options) {
-			if ($options !== null) {
+			if ($options['useField']) {
 				$searchable = $options['bSearchable'];
 				if ($searchable !== false) {
 					$searchKey = "sSearch_$i";
