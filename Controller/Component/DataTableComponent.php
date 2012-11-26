@@ -215,10 +215,8 @@ class DataTableComponent extends PaginatorComponent {
 			$settings = $this->getDefaults($alias);
 			$this->_columns[$alias] = array();
 			foreach($settings['columns'] as $field => $options) {
-				$useField = $enabled = true;
-				if (is_null($options)) {
-					$enabled = $useField = false;
-				}
+				$useField = !is_null($options);
+				$enabled = (!isset($options['useField']) || $options['useField']);
 				if (is_numeric($field)) {
 					$field = $options;
 					$options = array();
