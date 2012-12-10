@@ -34,6 +34,7 @@ class DataTableHelper extends HtmlHelper {
 		),
 		'scriptBlock' => 'script',
 		'js' => array(
+			'sAjaxSource' => array(),
 			'bServerSide' => true,
 		),
 	);
@@ -74,7 +75,7 @@ class DataTableHelper extends HtmlHelper {
  */
 	public function __construct(View $View, $settings = array()) {
 		parent::__construct($View, $settings);
-		$this->settings = Hash::merge($this->settings, $settings);
+		$this->settings = Set::merge($this->settings, $settings);
 		if (isset($this->_View->viewVars['dtColumns'])) {
 			$dtColumns = $this->_View->viewVars['dtColumns'];
 			foreach($dtColumns as $model => $columns) {
@@ -99,7 +100,7 @@ class DataTableHelper extends HtmlHelper {
 		$this->scriptBlock($jsVar, array('block' => 'dataTableSettings'));
 		if ($this->settings['scriptBlock'] !== false) {
 			$initScript = <<< INIT_SCRIPT
-$(document).ready(function() {
+jQuery(function($) {
 	$('.dataTable').each(function() {
 		var table = $(this);
 		var model = table.attr('data-model');

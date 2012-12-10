@@ -149,17 +149,15 @@ class DataTableComponent extends PaginatorComponent {
 		}
 		$settings = $this->_parseSettings($object);
 		if (isset($settings['scope'])) {
-			$scope = array_merge($settings['scope'], $scope);
+			$scope = array_merge($settings['scope'], (array)$scope);
 		}
 		if (isset($settings['findType'])) {
 			$settings['type'] = $settings['findType'];
 		}
-		$query = array_diff_key($settings,
-			array(
-				'conditions', 'columns', 'trigger', 'triggerAction',  'viewVar',  'maxLimit'
-			)
-		);
-		$total = $this->_object->find('count', $query);
+		$countQuery = $settings;
+		$countQuery['conditions'] = $scope;
+		unset($countQuery['fields']);
+		$total = $this->_object->find('count', $countQuery);
 
 		$this->_sort($settings);
 		$this->_search($settings);
@@ -178,6 +176,7 @@ class DataTableComponent extends PaginatorComponent {
 		$this->Controller->viewClass = 'DataTable.DataTableResponse';
 		$this->Controller->set($settings['viewVar'], $results);
 		$this->Controller->set(compact('dataTableData'));
+
 		if (isset($settings['view'])) {
 			$this->Controller->view = $settings['view'];
 		}
@@ -225,7 +224,7 @@ class DataTableComponent extends PaginatorComponent {
 					$enabled = $options;
 					$options = array();
 				}
-				$label = Inflector::humanize($field);
+				$label = Inflector::humanize(str_replace('.', '_', $field));
 				if (is_string($options)) {
 					$label = $options;
 					$options = array();
@@ -399,7 +398,13 @@ class DataTableComponent extends PaginatorComponent {
  * @return array
  */
 	public function getDefaults($alias) {
-		return array_merge($this->_defaults, parent::getDefaults($alias));
+		$defaults = array();
+		if ($this->Controller->modelClass != $alias) {
+			$action = $this->Controller->request->params['action'];
+			$view = Inflector::underscore($alias);
+			$defaults['view'] = sprintf('%s_%s', $action, $view);
+		}
+		return array_merge($defaults, $this->settings, parent::getDefaults($alias));
 	}
 
 }
