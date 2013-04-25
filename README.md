@@ -116,6 +116,7 @@ customized with the `viewVar` setting.
 			if ($columnSearchTerm) {
 				$conditions[] = array($field => $columnSearchTerm);			// only do exact match
 			}
+			return $conditions;
 		}
 	}
 	
