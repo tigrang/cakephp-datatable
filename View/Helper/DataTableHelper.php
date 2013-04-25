@@ -34,6 +34,7 @@ class DataTableHelper extends HtmlHelper {
 		),
 		'scriptBlock' => 'script',
 		'js' => array(
+			'sAjaxSource' => array(),
 			'bServerSide' => true,
 		),
 	);
