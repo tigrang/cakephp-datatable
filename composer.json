@@ -18,7 +18,8 @@
 
     },
     "replace": {
-        "lucasff/cakephp-datatable" : "dev-master"
+        "lucasff/cakephp-datatable": "dev-master",
+        "tigrang/cakephp-datatable": "dev-master"
     },
     "require": {
         "php": ">=5.3.0",
