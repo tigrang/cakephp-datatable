@@ -135,4 +135,6 @@ The helper by default uses the following init script:
 		var settings = dataTableSettings[model];
 		table.dataTable(settings);
 	});
+	
+The helper relies on a js var that is set inside the `dataTableSettings` block. Add `<?php echo $this->fetch('dataTableSettings'); ?>` before your scripts block.
 
