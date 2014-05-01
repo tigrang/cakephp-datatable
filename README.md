@@ -48,6 +48,7 @@ In your `app/Config/bootstrap.php`:
 	 */
 		public $components = array(
 			'DataTable.DataTable' => array(
+				'triggerAction' => array('myaction')  // use if your action is not 'index'
 				'columns' => array(
 					'id' => false, 						// bSearchable and bSortable will be false
 					'username' => 'Name',				// bSearchable and bSortable will be true, with a custom label `Name`
@@ -59,6 +60,9 @@ In your `app/Config/bootstrap.php`:
 				),
 			),
 		);
+
+By default, datatable processing is triggered if the request is an ajax one and the current action is 'index'. If this isn't the case, you can set the triggerAction setting to the action you need as a string, or an array of multiple actions for that controller that should be triggered if the request is an ajax one. You can also set trigger setting to a callback in your controller to do custom detection of when to process a request as a datatable request (it should return true/false).
+
 
 	/**
 	 * Helpers
