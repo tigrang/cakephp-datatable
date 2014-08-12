@@ -129,7 +129,7 @@ class DataTableComponent extends PaginatorComponent {
 		$this->Controller->set('dtColumns', $this->_columns);
 		if ($this->isDataTableRequest()) {
 			if (!isset($this->_params['model'])) {
-				throw new Exception('DateTableComponent: Model not specified for request.');
+				throw new Exception('DataTableComponent: Model not specified for request.');
 			}
 			$this->process($this->_params['model']);
 		}
