@@ -34,7 +34,7 @@ class DataTableHelper extends HtmlHelper {
 		),
 		'scriptBlock' => 'script',
 		'js' => array(
-			'sAjaxSource' => array(),
+			'sAjaxSource' => array('action' => 'processDataTableRequest'),
 			'bServerSide' => true,
 		),
 	);
@@ -78,9 +78,8 @@ class DataTableHelper extends HtmlHelper {
 		$this->settings = Hash::merge($this->settings, $settings);
 		if (isset($this->_View->viewVars['dtColumns'])) {
 			$dtColumns = $this->_View->viewVars['dtColumns'];
-			foreach($dtColumns as $model => $columns) {
-				$this->_paginatedModels[] = $model;
-				$this->_parseSettings($model, $columns);
+			foreach ($dtColumns as $config => $columns) {
+				$this->_parseSettings($config, $columns);
 			}
 		}
 	}
@@ -103,8 +102,7 @@ class DataTableHelper extends HtmlHelper {
 $(document).ready(function() {
 	$('.dataTable').each(function() {
 		var table = $(this);
-		var model = table.attr('data-model');
-		var settings = dataTableSettings[model];
+		var settings = dataTableSettings[table.attr('data-config')];
 		table.dataTable(settings);
 	});
 });
@@ -155,8 +153,7 @@ INIT_SCRIPT;
  * @param array $js Options for js var
  * @return string
  */
-	public function render($model = null, $options = array(), $js = array()) {
-		$model = $this->_getModel($model);
+	public function render($config = null, $options = array(), $js = array()) {
 		$options = array_merge($this->settings['table'], $options);
 
 		$trOptions = $options['trOptions'];
@@ -172,13 +169,13 @@ INIT_SCRIPT;
 		$tfoot = $options['tfoot'];
 		unset($options['tbody'], $options['tfoot']);
 
-		$tableHeaders = $this->tableHeaders($this->_labels[$model], $trOptions, $thOptions);
+		$tableHeaders = $this->tableHeaders($this->_labels[$config], $trOptions, $thOptions);
 		$tableHead = $this->tag('thead', $tableHeaders, $theadOptions);
 		$tableBody = $this->tag('tbody', $tbody, $tbodyOptions);
 		$tableFooter = $this->tag('tfoot', $tfoot, $tfootOptions);
-		$options['data-model'] = $model;
+		$options['data-config'] = $config;
 		$table = $this->tag('table', $tableHead . $tableBody . $tableFooter, $options);
-		$this->jsSettings($model, $js);
+		$this->jsSettings($config, $js);
 
 		return $table;
 	}
@@ -212,41 +209,32 @@ INIT_SCRIPT;
  * @param bool $encode
  * @return array|string
  */
-	public function jsSettings($model, $settings = array(), $encode = false) {
-		$model = $this->_getModel($model);
+	public function jsSettings($config, $settings = array(), $encode = false) {
 		$settings = array_merge($this->settings['js'], (array)$settings);
 		if (!empty($settings['bServerSide'])) {
 			if (!isset($settings['sAjaxSource']) || $settings['sAjaxSource'] === true) {
 				$settings['sAjaxSource'] = $this->request->here();
 			}
 			if (!is_string($settings['sAjaxSource'])) {
-				if (!isset($settings['sAjaxSource']['model'])) {
-					if (isset($settings['model'])) {
-						$model = $this->_getModel($settings['model']);
-						unset($settings['model']);
-					}
-					$settings['sAjaxSource']['?'] = array(
-						'model' => $model
-					);
-				}
+				$settings['sAjaxSource']['?']['config'] = $config;
 				$settings['sAjaxSource'] = Router::url($settings['sAjaxSource']);
 			}
 		}
 		if (isset($settings['aoColumns']) && $settings['aoColumns'] === true) {
 			$settings['aoColumns'] = $this->_dtColumns[$model];
 		}
-		$this->_dtSettings[$model] = $settings;
+		$this->_dtSettings[$config] = $settings;
 		return ($encode) ? json_encode($settings) : $settings;
 	}
 
 /**
  * Parse settings
  *
- * @param string $model
+ * @param string $config
  * @param array $columns
  * @return array
  */
-	protected function _parseSettings($model, $columns) {
+	protected function _parseSettings($config, $columns) {
 		foreach($columns as $field => $options) {
 			if ($options === null) {
 				$label = $field;
@@ -261,10 +249,10 @@ INIT_SCRIPT;
 					$options['bSearchable'] = (boolean)$options['bSearchable'];
 				}
 			}
-			$this->_labels[$model][] = $this->_parseLabel($label);
-			$this->_dtColumns[$model][] = $options;
+			$this->_labels[$config][] = $this->_parseLabel($label);
+			$this->_dtColumns[$config][] = $options;
 		}
-		return $this->_dtColumns[$model];
+		return $this->_dtColumns[$config];
 	}
 
 /**
@@ -284,22 +272,4 @@ INIT_SCRIPT;
 		}
 		return $label;
 	}
-
-/**
- * Validates model is a paginated model
- * 
- * @param $model
- * @return string
- */
-	protected function _getModel($model) {
-		if ($model === null && !empty($this->request->params['models'])) {
-			$model = current(array_keys($this->request->params['models']));
-		}
-		if (!in_array($model, $this->_paginatedModels)) {
-			trigger_error("DataTableHelper: Model {$model} is not setup for pagination", E_USER_ERROR);
-			return null;
-		}
-		return $model;
-	}
-
 }
