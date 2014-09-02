@@ -83,11 +83,11 @@ class DataTableComponent extends Component {
 		$config['conditions'] = array_merge((array) Hash::get($config, 'conditions'), $scope);
 
 		$Model = $this->_getModel($config['model']);
-		$iTotalRecords = $Model->find('count', $config);
+		$iTotalRecords = $Model->find('count', array_diff_key($config, array_flip(['fields'])));
 
 		$this->_sort($config);
 		$this->_search($config, $Model);
-		$iTotalDisplayRecords = $Model->find('count', $config);
+		$iTotalDisplayRecords = $Model->find('count', array_diff_key($config, array_flip(['fields'])));
 		$this->_paginate($config);
 
 		$dataTableData = array(
