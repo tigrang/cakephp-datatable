@@ -182,8 +182,8 @@ class DataTableComponent extends Component {
 			return;
 		}
 
-		$query['limit'] = min($this->_params['iDisplayLength'], $config['query']['maxLimit']);
-		$query['offset'] = $this->_params['iDisplayStart'];;
+		$config['query']['limit'] = min($this->_params['iDisplayLength'], $config['query']['maxLimit']);
+		$config['query']['offset'] = $this->_params['iDisplayStart'];
 	}
 
 /**
