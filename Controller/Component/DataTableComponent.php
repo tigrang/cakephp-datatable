@@ -219,7 +219,7 @@ class DataTableComponent extends Component {
 			$i++;
 		}
 		if (!empty($conditions)) {
-			$config['query']['conditions'][]['OR'] = array_merge($current, $conditions);
+			$config['query']['conditions'][]['OR'] = $conditions;
 		}
 	}
 
