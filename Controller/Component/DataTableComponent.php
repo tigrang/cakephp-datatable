@@ -36,20 +36,6 @@ class DataTableComponent extends Component {
 	);
 
 /**
- * Constructor
- *
- * @param ComponentCollection $collection
- * @param array $settings
- */
-	public function __construct(ComponentCollection $collection, $settings = array()) {
-		parent::__construct($collection, $settings);
-		$this->Controller = $collection->getController();
-		if (isset($settings['default'])) {
-			$this->defaults = array_merge($this->defaults, $settings['default']);
-		}
-	}
-
-/**
  * Initialize this component
  *
  * @param Controller $controller
@@ -57,6 +43,7 @@ class DataTableComponent extends Component {
  */
 	public function initialize(Controller $controller) {
 		parent::initialize($controller);
+		$this->Controller = $controller;
 		$property = $controller->request->is('get') ? 'query' : 'data';
 		$this->_params = $controller->request->$property;
 
@@ -93,15 +80,14 @@ class DataTableComponent extends Component {
  */
 	public function paginate($name, $scope = array()) {
 		$config = $this->getConfig($name);
-		$config['query']['conditions'] = array_merge((array) Hash::get($config['query'], 'conditions'), $scope);
+		$config['conditions'] = array_merge((array) Hash::get($config, 'conditions'), $scope);
 
-		$Model = $this->_getModel($config['query']['model']);
-		$iTotalRecords = $Model->find('count', $config['query']);
+		$Model = $this->_getModel($config['model']);
+		$iTotalRecords = $Model->find('count', $config);
 
 		$this->_sort($config);
 		$this->_search($config, $Model);
-		$iTotalDisplayRecords = $Model->find('count', $config['query']);
-
+		$iTotalDisplayRecords = $Model->find('count', $config);
 		$this->_paginate($config);
 
 		$dataTableData = array(
@@ -113,7 +99,7 @@ class DataTableComponent extends Component {
 
 		$this->Controller->viewClass = 'DataTable.DataTableResponse';
 		$this->Controller->view = Hash::get($config, 'view') ?: $name;
-		$this->Controller->set($config['query']['viewVar'], $Model->find('all', $config['query']));
+		$this->Controller->set($config['viewVar'], $Model->find('all', $config));
 		$this->Controller->set(compact('dataTableData'));
 	}
 
@@ -128,17 +114,17 @@ class DataTableComponent extends Component {
 			$name = $this->Controller->request->params['action'];
 		}
 
-		if (!isset($this->settings['config'][$name])) {
+		if (!isset($this->settings[$name])) {
 			throw new Exception(sprintf('%s: Missing config %s', __CLASS__, $name));
 		}
 
-		$query = array_merge($this->defaults, $this->settings['config'][$name]);
-		if (!isset($query['model'])) {
-			$query['model'] = $name;
+		$config = array_merge($this->defaults, $this->settings, $this->settings[$name]);
+		if (!isset($config['model'])) {
+			$config['model'] = $name;
 		}
 
 		$columns = array();
-		foreach($query['columns'] as $field => $options) {
+		foreach($config['columns'] as $field => $options) {
 			$useField = !is_null($options);
 			$enabled = $useField && (!isset($options['useField']) || $options['useField']);
 			if (is_numeric($field)) {
@@ -161,14 +147,14 @@ class DataTableComponent extends Component {
 				'bSearchable' => $enabled,
 			);
 			$options = array_merge($defaults, (array) $options);
-			$column = ($options['useField']) ? $this->_toColumn($query['model'], $field) : $field;
+			$column = ($options['useField']) ? $this->_toColumn($config['model'], $field) : $field;
 			$columns[$column] = $options;
 			if ($options['useField']) {
-				$query['fields'][] = $column;
+				$config['fields'][] = $column;
 			}
 		}
-		unset($query['columns']);
-		return compact('query', 'columns');
+		$config['columns'] = $columns;
+		return $config;
 	}
 
 /**
@@ -182,8 +168,8 @@ class DataTableComponent extends Component {
 			return;
 		}
 
-		$config['query']['limit'] = min($this->_params['iDisplayLength'], $config['query']['maxLimit']);
-		$config['query']['offset'] = $this->_params['iDisplayStart'];
+		$config['limit'] = min($this->_params['iDisplayLength'], $config['maxLimit']);
+		$config['offset'] = $this->_params['iDisplayStart'];
 	}
 
 /**
@@ -219,7 +205,7 @@ class DataTableComponent extends Component {
 			$i++;
 		}
 		if (!empty($conditions)) {
-			$config['query']['conditions'][]['OR'] = $conditions;
+			$config['conditions'][]['OR'] = $conditions;
 		}
 	}
 
@@ -242,7 +228,7 @@ class DataTableComponent extends Component {
 			}
 
 			$direction = Hash::get($this->_params, "sSortDir_$i") ?: 'asc';
-			$config['query']['order'][$column] = in_array(strtolower($direction), array('asc', 'desc')) ? $direction : 'asc';
+			$config['order'][$column] = in_array(strtolower($direction), array('asc', 'desc')) ? $direction : 'asc';
 		}
 	}
 
