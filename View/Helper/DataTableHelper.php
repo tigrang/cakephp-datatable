@@ -75,7 +75,6 @@ class DataTableHelper extends HtmlHelper {
  */
 	public function __construct(View $View, $settings = array()) {
 		parent::__construct($View, $settings);
-		$this->settings = Hash::merge($this->settings, $settings);
 		if (isset($this->_View->viewVars['dtColumns'])) {
 			$dtColumns = $this->_View->viewVars['dtColumns'];
 			foreach ($dtColumns as $config => $columns) {
