@@ -153,6 +153,10 @@ INIT_SCRIPT;
  * @return string
  */
 	public function render($config = null, $options = array(), $js = array()) {
+		if ($config === null) {
+			$config = current(array_keys($this->request->params['models']));
+		}
+
 		$options = array_merge($this->settings['table'], $options);
 
 		$trOptions = $options['trOptions'];
