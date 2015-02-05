@@ -8,6 +8,10 @@
  */
 class DataTableConfig {
 
+	const SEARCH_GLOBAL = 1;
+
+	const SEARCH_COLUMN = 2;
+
 	/**
 	 * @var array
 	 */

@@ -116,6 +116,7 @@ class DataTableComponent extends Component {
 		$i = 0;
 		$conditions = array();
 		$params = $this->_getParams();
+		$searchTerm = Hash::get($params, 'sSearch');
 		foreach ($config->columns as $column => $options) {
 			if ($options['useField']) {
 				$searchable = $options['bSearchable'];
@@ -123,17 +124,15 @@ class DataTableComponent extends Component {
 					continue;
 				}
 				$searchKey = "sSearch_$i";
-				$searchTerm = Hash::get($params, 'sSearch');
 				$columnSearchTerm = Hash::get($params, $searchKey);
 
-				if ($searchable === true) {
-					if ($searchTerm) {
-						$conditions[] = array("$column LIKE" => '%' . $searchTerm . '%');
-					}
-					if ($columnSearchTerm) {
-						$conditions[] = array("$column LIKE" => '%' . $columnSearchTerm . '%');
-					}
-				} else if (is_callable(array($Model, $searchable))) {
+				if ($searchTerm && ($searchable === true || $searchable === DataTableConfig::SEARCH_GLOBAL)) {
+					$conditions[] = array("$column LIKE" => '%' . $searchTerm . '%');
+				}
+				if ($columnSearchTerm && ($searchable === true || $searchable === DataTableConfig::SEARCH_COLUMN)) {
+					$conditions[] = array("$column LIKE" => '%' . $columnSearchTerm . '%');
+				}
+				if (is_callable(array($Model, $searchable))) {
 					$Model->$searchable($column, $searchTerm, $columnSearchTerm, $config);
 				}
 			}
