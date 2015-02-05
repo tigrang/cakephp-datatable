@@ -1,6 +1,5 @@
 <?php
 App::uses('HtmlHelper', 'View/Helper');
-
 /**
  * DataTable Helper
  *
@@ -34,6 +33,7 @@ class DataTableHelper extends HtmlHelper {
 		),
 		'scriptBlock' => 'script',
 		'js' => array(
+			'aoColumns' => true,
 			'sAjaxSource' => array('action' => 'processDataTableRequest'),
 			'bServerSide' => true,
 		),
@@ -54,18 +54,11 @@ class DataTableHelper extends HtmlHelper {
 	protected $_dtColumns;
 
 /**
- * Javascript settings for all paginated models
+ * Javascript settings for all pagination configs
  *
  * @var
  */
 	protected $_dtSettings = array();
-
-/**
- * All models setup for pagination
- *
- * @var array
- */
-	protected $_paginatedModels = array();
 
 /**
  * Constructor
@@ -76,8 +69,7 @@ class DataTableHelper extends HtmlHelper {
 	public function __construct(View $View, $settings = array()) {
 		parent::__construct($View, $settings);
 		if (isset($this->_View->viewVars['dtColumns'])) {
-			$dtColumns = $this->_View->viewVars['dtColumns'];
-			foreach ($dtColumns as $config => $columns) {
+			foreach ($this->_View->viewVars['dtColumns'] as $config => $columns) {
 				$this->_parseSettings($config, $columns);
 			}
 		}
@@ -89,11 +81,6 @@ class DataTableHelper extends HtmlHelper {
  * @param string $viewFile
  */
 	public function afterRender($viewFile) {
-		foreach($this->_paginatedModels as $model) {
-			if (!array_key_exists($model, $this->_dtSettings)) {
-				$this->jsSettings($model);
-			}
-		}
 		$jsVar = sprintf('var dataTableSettings = %s;', json_encode($this->_dtSettings));
 		$this->scriptBlock($jsVar, array('block' => 'dataTableSettings'));
 		if ($this->settings['scriptBlock'] !== false) {
@@ -113,13 +100,12 @@ INIT_SCRIPT;
 /**
  * Sets label at the given index.
  *
+ * @param string $config
  * @param int $index of column to change
  * @param string $label new label to be set. `__LABEL__` string will be replaced by the original label
- * @return bool true if set, false otherwise
  */
-	public function setLabel($model, $index, $label) {
-		$model = $this->_getModel($model);
-		$oldLabel = $this->_labels[$model][$index];
+	public function setLabel($config, $index, $label) {
+		$oldLabel = $this->_labels[$config][$index];
 		$oldOptions = $options = array();
 		if (is_array($oldLabel)) {
 			list($oldLabel, $oldOptions) = $oldLabel;
@@ -127,11 +113,10 @@ INIT_SCRIPT;
 		if (is_array($label)) {
 			list($label, $options) = $label;
 		}
-		$this->_labels[$model][$index] = array(
+		$this->_labels[$config][$index] = array(
 			$this->_parseLabel($label, $oldLabel),
 			array_merge($oldOptions, $options),
 		);
-		return true;
 	}
 
 /**
@@ -147,7 +132,7 @@ INIT_SCRIPT;
  *
  * The rest of the keys wil be passed as options for the table
  *
- * @param string $model Model to paginate
+ * @param string $config Config to render
  * @param array $options Options for table
  * @param array $js Options for js var
  * @return string
@@ -224,7 +209,7 @@ INIT_SCRIPT;
 			}
 		}
 		if (isset($settings['aoColumns']) && $settings['aoColumns'] === true) {
-			$settings['aoColumns'] = $this->_dtColumns[$model];
+			$settings['aoColumns'] = $this->_dtColumns[$config];
 		}
 		$this->_dtSettings[$config] = $settings;
 		return ($encode) ? json_encode($settings) : $settings;
@@ -238,7 +223,7 @@ INIT_SCRIPT;
  * @return array
  */
 	protected function _parseSettings($config, $columns) {
-		foreach($columns as $field => $options) {
+		foreach ($columns as $field => $options) {
 			if ($options === null) {
 				$label = $field;
 				$options = array(
@@ -270,7 +255,7 @@ INIT_SCRIPT;
 			'__CHECKBOX__' => '<input type="checkbox" class="check-all">',
 			'__LABEL__' => $oldLabel,
 		);
-		foreach($replacements as $search => $replace) {
+		foreach ($replacements as $search => $replace) {
 			$label = str_replace($search, $replace, $label);
 		}
 		return $label;
