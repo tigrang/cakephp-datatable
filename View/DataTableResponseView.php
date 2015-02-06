@@ -43,7 +43,11 @@ class DataTableResponseView extends JsonView {
 	 */
 	public function render($view = null, $layout = null) {
 		parent::render($view, $layout);
-		return json_encode($this->dtResponse);
+		$options = 0;
+		if (version_compare(PHP_VERSION, '5.4.0', '>=') && Configure::read('debug')) {
+			$options = JSON_PRETTY_PRINT;
+		}
+		return json_encode($this->dtResponse, $options);
 	}
 
 }
