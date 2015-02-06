@@ -60,17 +60,39 @@ class DataTableComponent extends Component {
 		$iTotalDisplayRecords = $Model->find('count', $config->getCountQuery());
 		$results = $Model->find('all', $config->getQuery());
 
+		$aaData = array();
+		if ($config->autoData) {
+			foreach ($results as $result) {
+				$row = [];
+				foreach ($config->columns as $column => $options) {
+					if (!$options['useField']) {
+						$row[] = null;
+						break;
+					}
+					$value = Hash::extract($result, $column);
+					$row[] = $value ? $value[0] : null;
+				}
+				$aaData[] = $row;
+			}
+		}
+
 		$dataTableData = array(
 			'iTotalRecords' => $iTotalRecords,
 			'iTotalDisplayRecords' => $iTotalDisplayRecords,
 			'sEcho' => (int) Hash::get($this->_getParams(), 'sEcho'),
-			'aaData' => array(),
+			'aaData' => $aaData,
 		);
 
-		$this->Controller->viewClass = 'DataTable.DataTableResponse';
-		$this->Controller->view = $config->view;
-		$this->Controller->set($config->viewVar, $results);
-		$this->Controller->set(compact('dataTableData'));
+		if ($config->autoData && $config->autoRender) {
+			$this->Controller->viewClass = 'Json';
+			$this->Controller->set(compact('dataTableData'));
+			$this->Controller->set('_serialize', 'dataTableData');
+		} else {
+			$this->Controller->viewClass = 'DataTable.DataTableResponse';
+			$this->Controller->view = $config->view;
+			$this->Controller->set($config->viewVar, $results);
+			$this->Controller->set(compact('dataTableData'));
+		}
 
 		return $config;
 	}

@@ -16,6 +16,8 @@ class DataTableConfig {
 	 * @var array
 	 */
 	public $defaults = array(
+		'autoData' => true,
+		'autoRender' => true,
 		'columns' => array(),
 		'conditions' => array(),
 		'maxLimit' => 100,
