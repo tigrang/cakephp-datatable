@@ -1,0 +1,34 @@
+{
+    "name": "lucasff/cakephp-datatable",
+    "description": "CakePHP DataTable Plugin",
+    "type": "cakephp-plugin",
+    "keywords": ["cakephp", "datatable", "table"],
+    "homepage": "https://github.com/tigrang/cakephp-datatable",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tigran Gabrielyan",
+            "homepage": "https://github.com/tigrang",
+            "role": "developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/tigrang/cakephp-datatable/issues",
+        "source": "https://github.com/tigrang/cakephp-datatable"
+
+    },
+    "replace": {
+        "lucasff/cakephp-datatable": "dev-master",
+        "tigrang/cakephp-datatable": "dev-master"
+    },
+    "require": {
+        "php": ">=5.3.0",
+        "composer/installers": "*"
+    },
+    "extra": {
+        "installer-name": "DataTable"
+    },
+    "suggest": {
+        "datatables/datatables": "jQuery Plugin for Displaying Tabular Data"
+    }
+}
