@@ -67,10 +67,10 @@ class DataTableComponent extends Component {
 				foreach ($config->columns as $column => $options) {
 					if (!$options['useField']) {
 						$row[] = null;
-						break;
+					} else {
+						$value = Hash::extract($result, $column);
+						$row[] = $value ? $value[0] : null;
 					}
-					$value = Hash::extract($result, $column);
-					$row[] = $value ? $value[0] : null;
 				}
 				$aaData[] = $row;
 			}
