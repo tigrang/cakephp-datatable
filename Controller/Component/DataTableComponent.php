@@ -149,7 +149,7 @@ class DataTableComponent extends Component {
 				$columnSearchTerm = Hash::get($params, $searchKey);
 
 				if ($searchTerm && ($searchable === true || $searchable === DataTableConfig::SEARCH_GLOBAL)) {
-					$conditions[] = array("$column LIKE" => '%' . $searchTerm . '%');
+					$conditions['OR'][] = array("$column LIKE" => '%' . $searchTerm . '%');
 				}
 				if ($columnSearchTerm && ($searchable === true || $searchable === DataTableConfig::SEARCH_COLUMN)) {
 					$conditions[] = array("$column LIKE" => '%' . $columnSearchTerm . '%');
@@ -161,7 +161,7 @@ class DataTableComponent extends Component {
 			$i++;
 		}
 		if (!empty($conditions)) {
-			$config->conditions['OR'] = Hash::merge((array) Hash::get($config->conditions, 'OR'), $conditions);
+			$config->conditions['AND'] = Hash::merge((array) Hash::get($config->conditions, 'AND'), $conditions);
 		}
 	}
 
